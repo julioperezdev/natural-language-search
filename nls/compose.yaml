@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${NLS_DB_NAME:-nls}
+      POSTGRES_USER: ${NLS_DB_USERNAME:-nls}
+      POSTGRES_PASSWORD: ${NLS_DB_PASSWORD:-nls}
+    ports:
+      - "${NLS_DB_PORT:-5432}:5432"
+    volumes:
+      - nls-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${NLS_DB_USERNAME:-nls} -d ${NLS_DB_NAME:-nls}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  nls-postgres-data:
