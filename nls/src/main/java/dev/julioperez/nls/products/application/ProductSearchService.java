@@ -33,6 +33,12 @@ public class ProductSearchService {
         return repository.validate(interpreted);
     }
 
+    public Criteria interpret(String message, Criteria current) {
+        SearchDecisionEngine engine = decisionEngine.orElseThrow(SearchInterpretationUnavailableException::new);
+        Criteria interpreted = engine.interpretTurn(message, repository.schema(), current);
+        return repository.validate(interpreted);
+    }
+
     public SearchSchema schema() {
         return repository.schema();
     }

@@ -1,0 +1,169 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-create-search-conversations
+      author: natural-language-search
+      changes:
+        - createTable:
+            tableName: search_conversations
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_search_conversations
+                    nullable: false
+              - column:
+                  name: channel
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: identity_digest
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: search_state_json
+                  type: TEXT
+              - column:
+                  name: next_message_sequence
+                  type: BIGINT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: search_conversations
+            columnNames: channel, identity_digest
+            constraintName: uq_search_conversations_identity
+        - createTable:
+            tableName: search_conversation_messages
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_search_conversation_messages
+                    nullable: false
+              - column:
+                  name: conversation_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_search_messages_conversation
+                    references: search_conversations(id)
+                    deleteCascade: true
+              - column:
+                  name: message_sequence
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: direction
+                  type: VARCHAR(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: content
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: provider_message_id
+                  type: VARCHAR(200)
+              - column:
+                  name: reply_to_message_id
+                  type: UUID
+                  constraints:
+                    foreignKeyName: fk_search_messages_reply
+                    references: search_conversation_messages(id)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: search_conversation_messages
+            columnNames: conversation_id, provider_message_id
+            constraintName: uq_search_messages_provider_id
+        - addUniqueConstraint:
+            tableName: search_conversation_messages
+            columnNames: conversation_id, message_sequence
+            constraintName: uq_search_messages_sequence
+        - createIndex:
+            tableName: search_conversation_messages
+            indexName: idx_search_messages_reply_to
+            columns:
+              - column:
+                  name: reply_to_message_id
+        - createTable:
+            tableName: processed_conversation_messages
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_processed_conversation_messages
+                    nullable: false
+              - column:
+                  name: conversation_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_processed_messages_conversation
+                    references: search_conversations(id)
+                    deleteCascade: true
+              - column:
+                  name: provider_message_id
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: response_json
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processed_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: processed_conversation_messages
+            columnNames: conversation_id, provider_message_id
+            constraintName: uq_processed_messages_provider_id
+        - createIndex:
+            tableName: processed_conversation_messages
+            indexName: idx_processed_messages_processed_at
+            columns:
+              - column:
+                  name: processed_at
+      rollback:
+        - dropTable:
+            tableName: processed_conversation_messages
+        - dropTable:
+            tableName: search_conversation_messages
+        - dropTable:
+            tableName: search_conversations

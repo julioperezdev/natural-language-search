@@ -1769,17 +1769,19 @@ Flow:
 message → interpretation → Criteria → JPA → results
 ```
 
-### Phase 8 — channels
+### Phase 8 — WhatsApp channel adapter
 
-Only after the backend search flow is stable:
+The local Meta WhatsApp adapter is implemented at `GET` and `POST /webhook/whatsapp`:
 
-```text
-WhatsApp webhook
-Email
-other channels
-```
+- verify the subscription challenge against the `verify-token` from Secrets Manager;
+- validate `X-Hub-Signature-256` over the exact request bytes using `app-secret`;
+- parse text messages for the configured WABA and Phone Number ID, with an optional sender allow-list;
+- delegate each inbound message to the persistent conversation use case;
+- send the structured flow's humanized reply with the WhatsApp Cloud API.
 
-These channels should delegate to the same application service.
+The adapter is disabled unless `NLS_WHATSAPP_ENABLED=true`. Its access token, verification token, and App Secret come from the NLS-specific AWS Secrets Manager secret configured by `NLS_WHATSAPP_SECRET_ID` (default: `nls/prod/whatsapp`); non-secret Graph API/WABA/phone-number settings use environment configuration. An empty `NLS_WHATSAPP_ALLOWED_RECIPIENT` accepts every sender who messages the connected WhatsApp number. Local public access can be provided temporarily through ngrok. This synchronous local adapter is at-least-once and does not replace a durable outbound queue for high-volume operation.
+
+Future channels should delegate to the same conversation application use case rather than introduce another search flow.
 
 ---
 
@@ -1813,13 +1815,17 @@ These channels should delegate to the same application service.
 
 ### Phase 2 — conversational state
 
-Possible later additions:
+The first conversational state increment is implemented by `POST /api/conversations/messages`:
 
-- previous filters retained between turns;
-- structured conversation state;
-- reference to previous result sets;
-- incremental constraints;
-- explicit reset/replace semantics.
+- resolve a conversation from a channel, receiving account and participant identity;
+- store the latest 20 inbound/outbound messages and the validated search `Criteria` separately;
+- keep previous filters, replace a field when a new value is stated, and clear filters on explicit reset/removal;
+- deduplicate repeated provider message IDs and replay the already stored response;
+- keep channel account and participant identifiers out of the database by storing an HMAC-SHA-256 identity digest.
+
+The provider receives the latest message and the active validated criteria, not an unbounded raw transcript. Reference resolution against earlier product result sets and conversation expiry remain future work.
+
+Processed-message receipts currently retain structured responses without automatic expiry; define a retention policy before sustained high-volume use.
 
 Example:
 

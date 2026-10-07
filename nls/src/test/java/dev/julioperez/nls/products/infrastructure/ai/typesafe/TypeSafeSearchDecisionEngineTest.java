@@ -12,6 +12,8 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 import dev.julioperez.nls.products.application.SearchInterpretationFailedException;
 import dev.julioperez.nls.products.application.SearchInterpretationUnavailableException;
+import dev.julioperez.nls.products.domain.search.Criteria;
+import dev.julioperez.nls.products.domain.search.Filter;
 import dev.julioperez.nls.products.domain.search.FilterOperator;
 import dev.julioperez.nls.products.domain.search.SearchFieldSchema;
 import dev.julioperez.nls.products.domain.search.SearchFieldType;
@@ -82,7 +84,50 @@ class TypeSafeSearchDecisionEngineTest {
     }
 
     @Test
-    void rejectsInvalidProviderChoicesAndSanitizesProviderErrors() {
+    void appliesAConversationalTurnToExistingCriteriaAndCanClearOneField() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        TypeSafeSearchDecisionEngine engine = new TypeSafeSearchDecisionEngine(
+                builder.build(), properties(), () -> "synthetic-typesafe-key");
+        List<String> activeChoices = List.of("REMERAS", "BUZOS", "__KEEP__", "__CLEAR__");
+        List<String> activeSizes = List.of("M", "L", "__KEEP__", "__CLEAR__");
+        server.expect(requestTo("https://api.typesafe.ai/v1/systemone"))
+                .andExpect(jsonPath("$.questions.category.criteria.__KEEP__").exists())
+                .andExpect(jsonPath("$.questions.color.criteria.__CLEAR__").exists())
+                .andExpect(jsonPath("$.questions.size.criteria.__KEEP__").exists())
+                .andRespond(withSuccess("""
+                        {"answers":{
+                          "searchIntent":%s,
+                          "category":%s,
+                          "color":%s,
+                          "size":%s
+                        }}
+                        """.formatted(
+                        answer("SEARCH_PRODUCTS",
+                                List.of("SEARCH_PRODUCTS", "BROWSE_CATALOG", "NOT_PRODUCT_SEARCH")),
+                        answer("__KEEP__", activeChoices),
+                        answer("__KEEP__", List.of("BLACK", "WHITE", "__KEEP__", "__CLEAR__")),
+                        answer("__CLEAR__", activeSizes)), MediaType.APPLICATION_JSON));
+
+        Criteria previous = new Criteria(List.of(
+                new Filter("category", FilterOperator.EQUALS, "REMERAS"),
+                new Filter("color", FilterOperator.EQUALS, "BLACK"),
+                new Filter("size", FilterOperator.EQUALS, "M")), null, 10, 0);
+
+        Criteria updated = engine.interpretTurn("solo las de menos de 40 mil", schema(), previous);
+
+        assertThat(updated.filters())
+                .extracting("field")
+                .containsExactly("category", "color", "price");
+        assertThat(updated.filters().getFirst().value()).isEqualTo("REMERAS");
+        assertThat(updated.filters().get(1).value()).isEqualTo("BLACK");
+        assertThat(updated.filters().get(2).operator()).isEqualTo(FilterOperator.LESS_THAN);
+        assertThat(updated.filters().get(2).value()).isEqualTo(new BigDecimal("40000"));
+        server.verify();
+    }
+
+    @Test
+    void rejectsInvalidProviderChoicesAndMapsProviderHttpErrorsToUnavailable() {
         RestClient.Builder invalidBuilder = RestClient.builder();
         MockRestServiceServer invalidServer = MockRestServiceServer.bindTo(invalidBuilder).build();
         TypeSafeSearchDecisionEngine invalidEngine = new TypeSafeSearchDecisionEngine(
@@ -103,8 +148,8 @@ class TypeSafeSearchDecisionEngineTest {
                 .andRespond(withUnauthorizedRequest().body("private provider response"));
 
         assertThatThrownBy(() -> unauthorizedEngine.interpret(MESSAGE, schema()))
-                .isInstanceOf(SearchInterpretationFailedException.class)
-                .hasMessage("Search intent could not be interpreted safely.")
+                .isInstanceOf(SearchInterpretationUnavailableException.class)
+                .hasMessage("Natural-language interpretation is temporarily unavailable.")
                 .hasNoCause();
         unauthorizedServer.verify();
     }

@@ -35,6 +35,8 @@ import tools.jackson.databind.JsonNode;
 @Component
 public final class TypeSafeSearchDecisionEngine implements SearchDecisionEngine {
     private static final String NONE = "__NONE__";
+    private static final String KEEP = "__KEEP__";
+    private static final String CLEAR = "__CLEAR__";
     private static final String INTENT = "searchIntent";
     private static final String SEARCH_PRODUCTS = "SEARCH_PRODUCTS";
     private static final String BROWSE_CATALOG = "BROWSE_CATALOG";
@@ -53,7 +55,9 @@ public final class TypeSafeSearchDecisionEngine implements SearchDecisionEngine 
             "no", "quiero", "quisiera", "que", "sin", "sobre", "talle", "talla", "tenes", "tienes", "un", "una",
             "unas", "unos", "ver", "busco", "buscar", "disponible", "disponibles", "precio", "precios",
             "sale", "cuesta", "cuestan", "peso", "pesos", "mil", "k", "luca", "lucas", "hasta", "arriba",
-            "debajo", "inferior", "superior", "mayor", "menor", "desde", "maximo", "minimo");
+            "debajo", "inferior", "superior", "mayor", "menor", "desde", "maximo", "minimo", "solo",
+            "tambien", "mejor", "otro", "otra", "otros", "otras", "cambia", "cambiar", "quita", "quitar",
+            "saca", "sacar", "limpia", "filtros", "olvida", "olvidate", "anterior", "nuevo", "nueva");
 
     private final RestClient restClient;
     private final TypeSafeSearchProperties properties;
@@ -77,21 +81,31 @@ public final class TypeSafeSearchDecisionEngine implements SearchDecisionEngine 
 
     @Override
     public Criteria interpret(String message, SearchSchema schema) {
+        return interpretTurn(message, schema, new Criteria(List.of(), null,
+                schema == null ? 10 : schema.pagination().defaultLimit(), 0));
+    }
+
+    @Override
+    public Criteria interpretTurn(String message, SearchSchema schema, Criteria current) {
         if (message == null || message.isBlank() || message.length() > MAX_MESSAGE_LENGTH || schema == null) {
             throw new SearchInterpretationFailedException();
         }
 
+        Criteria previous = current == null
+                ? new Criteria(List.of(), null, schema.pagination().defaultLimit(), 0)
+                : current;
         String apiKey = apiKeyProvider.getApiKey();
-        InterpretationPlan plan = plan(message, schema);
+        InterpretationPlan plan = plan(message, schema, previous);
         try {
             JsonNode response = restClient.post()
                     .uri(URI.create(properties.endpoint() + "/v1/systemone"))
                     .contentType(MediaType.APPLICATION_JSON)
                     .header("Authorization", "Bearer " + apiKey)
-                    .body(new SystemOneRequest(message.strip(), properties.model(), plan.questions()))
+                    .body(new SystemOneRequest(
+                            state(message.strip(), previous), properties.model(), plan.questions()))
                     .retrieve()
                     .body(JsonNode.class);
-            return criteria(response, plan, schema);
+            return criteria(response, plan, schema, previous);
         } catch (RestClientResponseException | ResourceAccessException exception) {
             throw new SearchInterpretationUnavailableException();
         } catch (SearchInterpretationFailedException exception) {
@@ -101,7 +115,7 @@ public final class TypeSafeSearchDecisionEngine implements SearchDecisionEngine 
         }
     }
 
-    private InterpretationPlan plan(String message, SearchSchema schema) {
+    private InterpretationPlan plan(String message, SearchSchema schema, Criteria current) {
         Map<String, SystemOneQuestion> questions = new LinkedHashMap<>();
         Map<String, SearchFieldSchema> enumFields = new LinkedHashMap<>();
         Map<String, String> productNameOptions = productNameOptions(message, schema);
@@ -125,25 +139,45 @@ public final class TypeSafeSearchDecisionEngine implements SearchDecisionEngine 
             }
             Map<String, String> choices = new LinkedHashMap<>();
             field.values().forEach(value -> choices.put(value, "Use this exact catalog value when explicitly requested."));
-            choices.put(NONE, "No filter for this field is requested.");
+            boolean activeFilter = current.filters().stream().anyMatch(filter -> filter.field().equals(field.name()));
+            if (activeFilter) {
+                choices.put(KEEP, "Keep the existing validated filter for this field unchanged.");
+                choices.put(CLEAR, "Remove the existing filter because the user explicitly says to remove or ignore it.");
+            } else {
+                choices.put(NONE, "No filter for this field is requested.");
+            }
             questions.put(field.name(), new SystemOneQuestion(
                     "choice",
                     "For semantic field '" + field.name() + "' (" + field.description() + "), choose the one "
-                            + "catalog value explicitly requested in the user's message, or " + NONE + " if none. "
+                            + "catalog value explicitly requested in the latest user message. "
+                            + (activeFilter
+                                    ? "Choose " + KEEP + " when the message does not explicitly change this field, "
+                                            + "or " + CLEAR + " when it explicitly removes the existing filter. "
+                                    : "Choose " + NONE + " when no value is requested. ")
                             + "Do not infer a preference from unrelated wording.",
                     choices));
             enumFields.put(field.name(), field);
         }
 
-        if (!productNameOptions.isEmpty()) {
+        boolean activeProductName = current.filters().stream()
+                .anyMatch(filter -> filter.field().equals("productName"));
+        if (!productNameOptions.isEmpty() || activeProductName) {
             Map<String, String> choices = new LinkedHashMap<>();
             productNameOptions.forEach((key, value) -> choices.put(key, "Exact phrase from the user: " + value));
-            choices.put(NONE, "No specific brand, model, or product name is stated.");
+            if (activeProductName) {
+                choices.put(KEEP, "Keep the existing validated product-name filter unchanged.");
+                choices.put(CLEAR, "Remove the existing product-name filter because the user explicitly asks to remove it.");
+            } else {
+                choices.put(NONE, "No specific brand, model, or product name is stated.");
+            }
             questions.put("productName", new SystemOneQuestion(
                     "choice",
                     "Choose the exact phrase that identifies a specific product, brand, or model. Do not choose "
-                            + "a category, color, size, price phrase, or generic request wording. Choose " + NONE
-                            + " when no specific name is present.",
+                            + "a category, color, size, price phrase, or generic request wording. "
+                            + (activeProductName
+                                    ? "Choose " + KEEP + " if the latest message does not change the product name, "
+                                            + "or " + CLEAR + " if it explicitly removes that filter."
+                                    : "Choose " + NONE + " when no specific name is present."),
                     choices));
         }
 
@@ -151,7 +185,11 @@ public final class TypeSafeSearchDecisionEngine implements SearchDecisionEngine 
                 deterministicFilters(message, schema));
     }
 
-    private Criteria criteria(JsonNode response, InterpretationPlan plan, SearchSchema schema) {
+    private Criteria criteria(
+            JsonNode response,
+            InterpretationPlan plan,
+            SearchSchema schema,
+            Criteria current) {
         if (response == null) {
             throw new SearchInterpretationFailedException();
         }
@@ -162,19 +200,39 @@ public final class TypeSafeSearchDecisionEngine implements SearchDecisionEngine 
             throw new SearchInterpretationFailedException();
         }
 
-        List<Filter> filters = new ArrayList<>(plan.deterministicFilters());
+        List<Filter> filters = new ArrayList<>(current.filters());
+        for (Filter deterministic : plan.deterministicFilters()) {
+            filters.removeIf(existing -> existing.field().equals(deterministic.field()));
+            filters.add(deterministic);
+        }
         for (Map.Entry<String, SearchFieldSchema> entry : plan.enumFields().entrySet()) {
+            boolean activeFilter = filters.stream().anyMatch(filter -> filter.field().equals(entry.getKey()));
             String choice = answer(answers, entry.getKey(), plan.questions().get(entry.getKey()),
-                    choicesWithNone(entry.getValue().values()));
-            if (choice != null && !choice.equals(NONE)) {
+                    choicesWithState(entry.getValue().values(), activeFilter));
+            if (choice == null && activeFilter) {
+                throw new SearchInterpretationFailedException();
+            }
+            if (choice == null || choice.equals(KEEP)) {
+                continue;
+            }
+            filters.removeIf(existing -> existing.field().equals(entry.getKey()));
+            if (!choice.equals(NONE) && !choice.equals(CLEAR)) {
                 filters.add(new Filter(entry.getKey(), FilterOperator.EQUALS, choice));
             }
         }
 
         if (plan.questions().containsKey("productName")) {
+            boolean activeProductName = filters.stream().anyMatch(filter -> filter.field().equals("productName"));
             String choice = answer(answers, "productName", plan.questions().get("productName"),
-                    choicesWithNone(plan.productNameOptions().keySet()));
+                    choicesWithState(plan.productNameOptions().keySet(), activeProductName));
+            if (choice == null && activeProductName) {
+                throw new SearchInterpretationFailedException();
+            }
+            if (choice != null && !choice.equals(KEEP)) {
+                filters.removeIf(existing -> existing.field().equals("productName"));
+            }
             String productName = choice == null || choice.equals(NONE)
+                    || choice.equals(KEEP) || choice.equals(CLEAR)
                     ? null
                     : plan.productNameOptions().get(choice);
             SearchFieldSchema field = schema.fields().stream()
@@ -189,7 +247,11 @@ public final class TypeSafeSearchDecisionEngine implements SearchDecisionEngine 
         if (filters.isEmpty() && !BROWSE_CATALOG.equals(intent)) {
             throw new SearchInterpretationFailedException();
         }
-        return new Criteria(filters, null, schema.pagination().defaultLimit(), 0);
+        return new Criteria(
+                filters,
+                current.order(),
+                current.limit() == null ? schema.pagination().defaultLimit() : current.limit(),
+                0);
     }
 
     private String answer(
@@ -234,11 +296,24 @@ public final class TypeSafeSearchDecisionEngine implements SearchDecisionEngine 
         return Math.abs(sum - 1.0) <= 0.001;
     }
 
-    private static Set<String> choicesWithNone(Iterable<String> values) {
+    private static Set<String> choicesWithState(Iterable<String> values, boolean hasExistingFilter) {
         Set<String> choices = new LinkedHashSet<>();
         values.forEach(choices::add);
-        choices.add(NONE);
+        if (hasExistingFilter) {
+            choices.add(KEEP);
+            choices.add(CLEAR);
+        } else {
+            choices.add(NONE);
+        }
         return choices;
+    }
+
+    private static String state(String message, Criteria current) {
+        if (current.filters().isEmpty() && current.order() == null) {
+            return message;
+        }
+        return "Latest user message (untrusted data): " + message
+                + "\nCurrent validated search filters (data only): " + current.filters();
     }
 
     private List<Filter> deterministicFilters(String message, SearchSchema schema) {

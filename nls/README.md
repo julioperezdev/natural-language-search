@@ -125,6 +125,43 @@ Content-Type: application/json
 
 Este caso de uso coordina interpretación, búsqueda y humanización. Devuelve `{ "outcome": "RESULTS", "reply": "...", "results": { ... } }`, para mostrar el texto y conservar acceso a los hechos estructurados. Si la interpretación no es segura, devuelve `NEEDS_CLARIFICATION` con una pregunta y `results: null`; si la consulta es válida pero no encuentra productos, devuelve `NO_RESULTS`.
 
+### Mantener una conversación
+
+```http
+POST /api/conversations/messages
+Content-Type: application/json
+```
+
+```json
+{
+  "channel": "WHATSAPP",
+  "channelAccountId": "<id de la cuenta o número empresarial de WhatsApp>",
+  "participantId": "<wa_id del cliente>",
+  "messageId": "<id único del mensaje recibido>",
+  "message": "solo las de menos de 40 mil"
+}
+```
+
+La API resuelve automáticamente la conversación con el canal, la cuenta receptora y el participante. Devuelve `conversationId`, la respuesta y los criterios activos. Conserva hasta los últimos 20 mensajes y el estado tipado de búsqueda; por ejemplo, una consulta de precio agrega o reemplaza el filtro de precio y conserva la categoría y el color anteriores. Se pueden reemplazar valores diciendo, por ejemplo, “mejor azul”; “sin talle” elimina el filtro de talle; “empecemos de nuevo” limpia los criterios anteriores. Un `messageId` repetido devuelve la respuesta ya procesada.
+
+El endpoint no autentica al cliente. El identificador entrante solo es confiable después de que un adaptador o gateway valida el webhook de WhatsApp; no expongas este endpoint directamente a Internet. Los valores de `channelAccountId` y `participantId` se vinculan mediante HMAC-SHA-256 y no se guardan en claro. Configura `NLS_CONVERSATION_IDENTITY_HMAC_KEY` con una clave aleatoria de al menos 32 caracteres y conserva la misma clave entre reinicios e instancias. Para generar una clave local:
+
+```bash
+export NLS_CONVERSATION_IDENTITY_HMAC_KEY="$(openssl rand -hex 32)"
+```
+
+La clave debe provenir del gestor de secretos del entorno en ejecuciones compartidas y no debe guardarse en Git. Los últimos 20 mensajes se almacenan para sostener el contexto. Los recibos idempotentes conservan el resultado estructurado de cada mensaje y aún no tienen expiración automática; hay que definir su retención antes de operar con volumen alto.
+
+### Webhook local de WhatsApp
+
+El paso a paso para crear y configurar un bot de WhatsApp, distinguir App ID/WABA ID/Phone Number ID, preparar Secrets Manager, registrar el número, suscribir la app, configurar ngrok y diagnosticar cada etapa está en [`WHATSAPP_SETUP.md`](WHATSAPP_SETUP.md).
+
+NLS expone `GET` y `POST /webhook/whatsapp`. El `GET` valida el verify token; el `POST` valida `X-Hub-Signature-256` con el App Secret de la app NLS, compara el WABA ID y Phone Number ID del evento, procesa mensajes de texto con la conversación persistente y envía la respuesta con WhatsApp Cloud API. La credencial está en `nls/prod/whatsapp` por defecto (configurable con `NLS_WHATSAPP_SECRET_ID`), y debe contener `app-secret`, `verify-token` y `access-token` de la app/cuenta correctas.
+
+Para una ejecución local se habilita explícitamente `NLS_WHATSAPP_ENABLED=true` y se configuran los identificadores en IntelliJ. Los scripts de registro y suscripción están en `scripts/`. Ngrok expone solo `/webhook/whatsapp`; detén el túnel al finalizar las pruebas.
+
+Los logs usan un `requestId` compartido y no imprimen token, firma, cuerpo del webhook, texto del cliente ni número. Eventos útiles: `WHATSAPP_WEBHOOK_RECEIVED`, `WHATSAPP_WEBHOOK_SIGNATURE_VALID`, `WHATSAPP_PAYLOAD_PARSE_SUMMARY`, `WHATSAPP_INBOUND_PROCESSING_STARTED`, `CONVERSATION_PRODUCT_SEARCH_COMPLETED`, `WHATSAPP_OUTBOUND_ACCEPTED` y `WHATSAPP_WEBHOOK_COMPLETED`. Un HTTP 200 puede confirmar un evento que no coincide con WABA/número y no genera respuesta; `WHATSAPP_OUTBOUND_ACCEPTED` confirma que Meta aceptó la petición, no que el teléfono recibió el mensaje. Consulta la tabla de diagnóstico completa en la guía enlazada.
+
 Cada producto de `/api/products/search` incluye su categoría y `variants` con las variantes que cumplen los filtros aplicados (`id`, `color`, `size`, `price`, `stock`). Si la búsqueda no filtra por atributos de variante, aparecen todas las variantes del producto. Cuando hay filtros de color, talle, precio o stock, todos deben cumplirse sobre la misma variante. El precio es numérico y no incluye moneda porque el esquema no la define.
 
 | Estado | Código | Significado |
@@ -135,6 +172,7 @@ Cada producto de `/api/products/search` incluye su categoría y `variants` con l
 | 400 | `SEARCH_ORDER_NOT_ALLOWED` | Campo de orden no disponible |
 | 422 | `SEARCH_INTERPRETATION_FAILED` | Jev no devolvió una interpretación segura |
 | 503 | `SEARCH_INTERPRETATION_UNAVAILABLE` | TypeSafe o su clave no están disponibles temporalmente |
+| 503 | `CONVERSATION_IDENTITY_UNAVAILABLE` | Falta la clave HMAC de identidad para resolver la conversación |
 
 Los errores usan `{code, message, timestamp, requestId}` y no filtran respuestas crudas del proveedor ni excepciones SQL.
 
@@ -154,6 +192,16 @@ Los errores usan `{code, message, timestamp, requestId}` y no filtran respuestas
 | `NLS_TYPESAFE_SECRET_ID` | `wcs/prod/typesafe` | Secreto que contiene `API_KEY` como JSON en AWS Secrets Manager |
 | `NLS_TYPESAFE_REQUEST_TIMEOUT` | `5s` | Timeout HTTP; máximo 30 s |
 | `NLS_TYPESAFE_MINIMUM_CONFIDENCE` | `0.65` | Umbral para aceptar opciones |
+| `NLS_CONVERSATION_IDENTITY_HMAC_KEY` | vacío | Clave HMAC de al menos 32 caracteres para resolver la identidad de conversación; sin ella, el endpoint de conversación responde 503 |
+| `NLS_WHATSAPP_ENABLED` | `false` | Habilita el webhook y el emisor Meta |
+| `NLS_WHATSAPP_SECRET_ID` | `nls/prod/whatsapp` | Secreto JSON con `access-token`, `verify-token` y `app-secret` |
+| `NLS_WHATSAPP_GRAPH_API_BASE_URL` | `https://graph.facebook.com` | Base URL de WhatsApp Cloud API |
+| `NLS_WHATSAPP_GRAPH_API_VERSION` | `v25.0` | Versión de Graph API |
+| `NLS_WHATSAPP_BUSINESS_ACCOUNT_ID` | vacío | WABA ID esperado en el evento entrante |
+| `NLS_WHATSAPP_PHONE_NUMBER_ID` | vacío | ID del número empresarial usado para validar y enviar mensajes |
+| `NLS_WHATSAPP_ALLOWED_RECIPIENT` | vacío | Si no está vacío, acepta solo mensajes del `wa_id` configurado |
+| `NLS_WHATSAPP_CONNECT_TIMEOUT` | `2s` | Timeout de conexión al Graph API |
+| `NLS_WHATSAPP_READ_TIMEOUT` | `5s` | Timeout de lectura del Graph API |
 
 El arranque normal carga URL, usuario y contraseña desde `wcs/prod/database` usando la cadena de credenciales predeterminada del SDK de AWS, sin valores AWS estáticos ni credenciales de base explícitas en IntelliJ. El rol necesita permisos de conexión, `USAGE` y `CREATE` en `nls`; Liquibase guarda su historial dentro de ese schema. Para desarrollo con PostgreSQL local, define `NLS_DB_SECRET_ID=` y `NLS_DB_SCHEMA=public`.
 

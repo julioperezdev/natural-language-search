@@ -39,6 +39,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
         "springdoc.api-docs.enabled=true",
         "springdoc.swagger-ui.enabled=true",
         "nls.database.secret-id=",
+        "nls.conversation.identity-hmac-key=integration-test-identity-hmac-key-0123456789abcdef",
         "NLS_DB_SCHEMA=public"
 })
 @AutoConfigureMockMvc
@@ -186,6 +187,47 @@ class ProductSearchIntegrationTest {
                 .andExpect(jsonPath("$.code").value("INVALID_SEARCH_REQUEST"));
     }
 
+    @Test
+    void retainsSearchCriteriaAcrossConversationMessagesAndReplaysDuplicateProviderMessages() throws Exception {
+        CategoryJpaEntity category = category("T-Shirts");
+        ProductJpaEntity black = product("Black tee", category);
+        variant(black, "BLACK", "M", "25.00", 4);
+        ProductJpaEntity white = product("White tee", category);
+        variant(white, "WHITE", "M", "20.00", 5);
+
+        String channelAccountId = "business-test";
+        String participantId = "customer-" + java.util.UUID.randomUUID();
+
+        mvc.perform(conversationMessage(channelAccountId, participantId, "wamid-test-1", "black medium"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.outcome").value("RESULTS"))
+                .andExpect(jsonPath("$.results.total").value(1))
+                .andExpect(jsonPath("$.results.items[0].name").value("Black tee"))
+                .andExpect(jsonPath("$.criteria.filters.length()").value(2))
+                .andExpect(jsonPath("$.context.retainedMessages").value(2));
+
+        mvc.perform(conversationMessage(channelAccountId, participantId, "wamid-test-2", "under 30"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.outcome").value("RESULTS"))
+                .andExpect(jsonPath("$.results.total").value(1))
+                .andExpect(jsonPath("$.results.items[0].name").value("Black tee"))
+                .andExpect(jsonPath("$.criteria.filters.length()").value(3))
+                .andExpect(jsonPath("$.context.retainedMessages").value(4));
+
+        mvc.perform(conversationMessage(channelAccountId, participantId, "wamid-test-2", "white medium"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.results.items[0].name").value("Black tee"))
+                .andExpect(jsonPath("$.criteria.filters.length()").value(3))
+                .andExpect(jsonPath("$.context.retainedMessages").value(4));
+
+        for (int turn = 3; turn <= 11; turn++) {
+            mvc.perform(conversationMessage(
+                            channelAccountId, participantId, "wamid-test-" + turn, "black medium"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.context.retainedMessages").value(Math.min(turn * 2, 20)));
+        }
+    }
+
     private CategoryJpaEntity category(String name) {
         return categories.saveAndFlush(new CategoryJpaEntity(name));
     }
@@ -204,18 +246,45 @@ class ProductSearchIntegrationTest {
                 product, color, size, new BigDecimal(price), stock));
     }
 
+    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder conversationMessage(
+            String channelAccountId,
+            String participantId,
+            String messageId,
+            String message) {
+        return post("/api/conversations/messages")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                          "channel": "WHATSAPP",
+                          "channelAccountId": "%s",
+                          "participantId": "%s",
+                          "messageId": "%s",
+                          "message": "%s"
+                        }
+                        """.formatted(channelAccountId, participantId, messageId, message));
+    }
+
     @TestConfiguration
     static class TestDecisionEngineConfiguration {
         @Bean
         @Primary
         SearchDecisionEngine testDecisionEngine() {
             return (message, schema) -> {
-                if (!"black medium".equals(message)) {
-                    return null;
+                if ("black medium".equals(message)) {
+                    return new Criteria(List.of(
+                            new Filter("color", FilterOperator.EQUALS, "BLACK"),
+                            new Filter("size", FilterOperator.EQUALS, "M")), null, 10, 0);
                 }
-                return new Criteria(List.of(
-                        new Filter("color", FilterOperator.EQUALS, "BLACK"),
-                        new Filter("size", FilterOperator.EQUALS, "M")), null, 10, 0);
+                if ("white medium".equals(message)) {
+                    return new Criteria(List.of(
+                            new Filter("color", FilterOperator.EQUALS, "WHITE"),
+                            new Filter("size", FilterOperator.EQUALS, "M")), null, 10, 0);
+                }
+                if ("under 30".equals(message)) {
+                    return new Criteria(List.of(
+                            new Filter("price", FilterOperator.LESS_THAN, new BigDecimal("30"))), null, 10, 0);
+                }
+                return null;
             };
         }
     }
