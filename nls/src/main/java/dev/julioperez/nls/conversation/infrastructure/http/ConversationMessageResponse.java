@@ -1,14 +1,14 @@
 package dev.julioperez.nls.conversation.infrastructure.http;
 
+import dev.julioperez.nls.conversation.application.ConversationMessageOutcome;
 import dev.julioperez.nls.conversation.application.ConversationMessageResult;
 import dev.julioperez.nls.products.domain.search.Criteria;
 import dev.julioperez.nls.products.domain.search.ProductSearchPage;
-import dev.julioperez.nls.productsearch.domain.ProductSearchAnswerOutcome;
 import java.util.UUID;
 
 public record ConversationMessageResponse(
         UUID conversationId,
-        ProductSearchAnswerOutcome outcome,
+        ConversationMessageOutcome outcome,
         String reply,
         ProductSearchPage results,
         Criteria criteria,

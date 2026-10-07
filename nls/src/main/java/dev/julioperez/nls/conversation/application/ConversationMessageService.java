@@ -68,7 +68,8 @@ public class ConversationMessageService {
                 MAX_CONTEXT_MESSAGES, conversations.countMessages(conversation.id()));
         int retainedAfterReply = Math.min(MAX_CONTEXT_MESSAGES, retainedAfterInbound + 1);
         ConversationMessageResult result = new ConversationMessageResult(
-                conversation.id(), answer.outcome(), answer.reply(), answer.results(), nextCriteria,
+                conversation.id(), ConversationMessageOutcome.from(answer.outcome()), answer.reply(),
+                answer.results(), nextCriteria,
                 retainedAfterReply, MAX_CONTEXT_MESSAGES);
         String responseJson = stateCodec.encodeResult(result);
         conversations.recordProcessedMessage(
@@ -81,6 +82,44 @@ public class ConversationMessageService {
         conversations.retainLatestMessages(
                 conversation.id(), inboundSequence + 1, MAX_CONTEXT_MESSAGES);
         log.info("CONVERSATION_STATE_WRITE_STAGED requestId={} retainedMessages={}",
+                requestId, retainedAfterReply);
+        return result;
+    }
+
+    @Transactional
+    public ConversationMessageResult resetContext(ConversationMessageCommand command) {
+        String requestId = RequestLogContext.requestId();
+        Conversation conversation = conversations.lockOrCreate(command.identity());
+        var previousResponse = conversations.findResponseByProviderMessageId(
+                conversation.id(), command.providerMessageId());
+        if (previousResponse.isPresent()) {
+            log.info("CONVERSATION_MESSAGE_REPLAYED requestId={} result=deduplicated", requestId);
+            return stateCodec.decodeResult(previousResponse.get());
+        }
+
+        Criteria clearedCriteria = stateCodec.emptyCriteria(10);
+        long inboundSequence = conversation.nextMessageSequence() + 1;
+        Instant now = Instant.now();
+        UUID inboundId = conversations.append(new ConversationMessage(
+                UUID.randomUUID(), conversation.id(), inboundSequence, ConversationMessageDirection.INBOUND,
+                command.message(), command.providerMessageId(), null, now));
+        int retainedAfterInbound = (int) Math.min(
+                MAX_CONTEXT_MESSAGES, conversations.countMessages(conversation.id()));
+        int retainedAfterReply = Math.min(MAX_CONTEXT_MESSAGES, retainedAfterInbound + 1);
+        ConversationMessageResult result = new ConversationMessageResult(
+                conversation.id(), ConversationMessageOutcome.CONTEXT_RESET,
+                "Listo, reinicié el contexto de búsqueda. ¿Qué producto estás buscando?",
+                null, clearedCriteria, retainedAfterReply, MAX_CONTEXT_MESSAGES);
+        conversations.recordProcessedMessage(conversation.id(), command.providerMessageId(),
+                stateCodec.encodeResult(result), now);
+        conversations.append(new ConversationMessage(
+                UUID.randomUUID(), conversation.id(), inboundSequence + 1, ConversationMessageDirection.OUTBOUND,
+                result.reply(), null, inboundId, now));
+        conversations.updateSearchState(
+                conversation.id(), stateCodec.encodeCriteria(clearedCriteria), inboundSequence + 1, now);
+        conversations.retainLatestMessages(
+                conversation.id(), inboundSequence + 1, MAX_CONTEXT_MESSAGES);
+        log.info("CONVERSATION_CONTEXT_RESET requestId={} retainedMessages={}",
                 requestId, retainedAfterReply);
         return result;
     }

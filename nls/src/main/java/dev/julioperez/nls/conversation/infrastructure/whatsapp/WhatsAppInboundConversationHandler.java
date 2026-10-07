@@ -35,7 +35,11 @@ public final class WhatsAppInboundConversationHandler {
                 new ConversationIdentity(ConversationChannel.WHATSAPP, properties.phoneNumberId(), message.senderId()),
                 message.providerMessageId(), message.text());
         try {
-            var result = conversations.handle(command);
+            boolean resetCommand = WhatsAppResetCommand.matches(message.text());
+            if (resetCommand) {
+                log.info("WHATSAPP_RESET_COMMAND_RECEIVED requestId={}", requestId);
+            }
+            var result = resetCommand ? conversations.resetContext(command) : conversations.handle(command);
             long totalResults = result.results() == null ? 0 : result.results().total();
             log.info("WHATSAPP_CONVERSATION_COMPLETED requestId={} outcome={} totalResults={} retainedMessages={}",
                     requestId, result.outcome(), totalResults, result.retainedMessages());

@@ -48,7 +48,7 @@ public class ConversationStateCodec {
         }
     }
 
-    private Criteria emptyCriteria(int defaultLimit) {
+    public Criteria emptyCriteria(int defaultLimit) {
         return new Criteria(List.of(), null, defaultLimit, 0);
     }
 }
