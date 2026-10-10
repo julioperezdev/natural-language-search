@@ -1,5 +1,6 @@
 package dev.julioperez.nls.products;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItems;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -7,6 +8,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import dev.julioperez.nls.conversation.application.ConversationMessageCommand;
+import dev.julioperez.nls.conversation.application.ConversationMessageService;
+import dev.julioperez.nls.conversation.domain.ConversationChannel;
+import dev.julioperez.nls.conversation.domain.ConversationIdentity;
+import dev.julioperez.nls.conversation.domain.ConversationRepository;
+import dev.julioperez.nls.products.application.SearchConversationContext;
 import dev.julioperez.nls.products.application.SearchDecisionEngine;
 import dev.julioperez.nls.products.domain.search.Criteria;
 import dev.julioperez.nls.products.domain.search.Filter;
@@ -19,6 +26,7 @@ import dev.julioperez.nls.products.infrastructure.repository.postgres.ProductVar
 import dev.julioperez.nls.products.infrastructure.repository.postgres.ProductVariantJpaEntity;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,8 +70,18 @@ class ProductSearchIntegrationTest {
     @Autowired
     ProductVariantBaseJpaRepository variants;
 
+    @Autowired
+    ConversationRepository conversations;
+
+    @Autowired
+    SearchContextRecorder searchContextRecorder;
+
+    @Autowired
+    ConversationMessageService conversationMessageService;
+
     @BeforeEach
     void clearCatalog() {
+        searchContextRecorder.clear();
         variants.deleteAllInBatch();
         products.deleteAllInBatch();
         categories.deleteAllInBatch();
@@ -228,6 +246,89 @@ class ProductSearchIntegrationTest {
         }
     }
 
+    @Test
+    void restoresTheFirstSavedSearchAfterSeveralContextualSearches() throws Exception {
+        CategoryJpaEntity category = category("T-Shirts");
+        ProductJpaEntity black = product("Black tee", category);
+        variant(black, "BLACK", "M", "25.00", 4);
+        ProductJpaEntity white = product("White tee", category);
+        variant(white, "WHITE", "M", "20.00", 5);
+
+        String channelAccountId = "business-snapshot-test";
+        String participantId = "customer-" + java.util.UUID.randomUUID();
+
+        mvc.perform(conversationMessage(channelAccountId, participantId, "snapshot-1", "black medium"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.results.items[0].name").value("Black tee"));
+        mvc.perform(conversationMessage(channelAccountId, participantId, "snapshot-2", "white medium"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.results.items[0].name").value("White tee"));
+        mvc.perform(conversationMessage(channelAccountId, participantId, "snapshot-3", "volvamos a lo primero"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.results.items[0].name").value("Black tee"))
+                .andExpect(jsonPath("$.criteria.filters[0].value").value("BLACK"));
+    }
+
+    @Test
+    void resetStartsANewModelContextEpochWhileRetainingRecentMessages() throws Exception {
+        CategoryJpaEntity category = category("T-Shirts");
+        ProductJpaEntity black = product("Black tee", category);
+        variant(black, "BLACK", "M", "25.00", 4);
+        ProductJpaEntity white = product("White tee", category);
+        variant(white, "WHITE", "M", "20.00", 5);
+
+        String channelAccountId = "context-epoch-test";
+        String participantId = "customer-" + java.util.UUID.randomUUID();
+        ConversationIdentity identity = new ConversationIdentity(
+                ConversationChannel.WHATSAPP, channelAccountId, participantId);
+
+        mvc.perform(conversationMessage(channelAccountId, participantId, "epoch-1", "black medium"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.outcome").value("RESULTS"));
+        mvc.perform(conversationMessage(channelAccountId, participantId, "epoch-2", "under 30"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.outcome").value("RESULTS"));
+        assertThat(searchContextRecorder.last().turns()).hasSize(2);
+
+        var reset = conversationMessageService.resetContext(new ConversationMessageCommand(
+                identity, "epoch-reset", "reiniciar"));
+        assertThat(reset.outcome().name()).isEqualTo("CONTEXT_RESET");
+        int interpretationCallsBeforeOldReference = searchContextRecorder.size();
+        mvc.perform(conversationMessage(
+                        channelAccountId, participantId, "epoch-old-reference", "volvamos a lo primero"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.outcome").value("NEEDS_CLARIFICATION"));
+        assertThat(searchContextRecorder.size()).isEqualTo(interpretationCallsBeforeOldReference);
+
+        mvc.perform(conversationMessage(channelAccountId, participantId, "epoch-reset-again", "empecemos de nuevo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.outcome").value("NEEDS_CLARIFICATION"));
+
+        mvc.perform(conversationMessage(channelAccountId, participantId, "epoch-3", "white medium"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.results.items[0].name").value("White tee"));
+        assertThat(searchContextRecorder.last().turns()).isEmpty();
+        assertThat(searchContextRecorder.last().searchSnapshots()).isEmpty();
+
+        mvc.perform(conversationMessage(channelAccountId, participantId, "epoch-4", "black medium"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.results.items[0].name").value("Black tee"));
+        assertThat(searchContextRecorder.last().turns())
+                .extracting(SearchConversationContext.Turn::content)
+                .hasSize(2)
+                .contains("white medium")
+                .doesNotContain("under 30", "black medium");
+        assertThat(searchContextRecorder.last().searchSnapshots())
+                .extracting(SearchConversationContext.SearchSnapshot::sequence)
+                .containsExactly(1L);
+
+        var storedMessages = conversations.latestMessages(
+                conversations.lockOrCreate(identity).id(), ConversationMessageService.MAX_CONTEXT_MESSAGES);
+        assertThat(storedMessages)
+                .extracting(message -> message.content())
+                .contains("black medium", "under 30");
+    }
+
     private CategoryJpaEntity category(String name) {
         return categories.saveAndFlush(new CategoryJpaEntity(name));
     }
@@ -268,24 +369,67 @@ class ProductSearchIntegrationTest {
     static class TestDecisionEngineConfiguration {
         @Bean
         @Primary
-        SearchDecisionEngine testDecisionEngine() {
-            return (message, schema) -> {
-                if ("black medium".equals(message)) {
-                    return new Criteria(List.of(
-                            new Filter("color", FilterOperator.EQUALS, "BLACK"),
-                            new Filter("size", FilterOperator.EQUALS, "M")), null, 10, 0);
+        SearchContextRecorder searchContextRecorder() {
+            return new SearchContextRecorder();
+        }
+
+        @Bean
+        @Primary
+        SearchDecisionEngine testDecisionEngine(SearchContextRecorder searchContextRecorder) {
+            return new SearchDecisionEngine() {
+                @Override
+                public Criteria interpret(String message, dev.julioperez.nls.products.domain.search.SearchSchema schema) {
+                    if ("black medium".equals(message)) {
+                        return new Criteria(List.of(
+                                new Filter("color", FilterOperator.EQUALS, "BLACK"),
+                                new Filter("size", FilterOperator.EQUALS, "M")), null, 10, 0);
+                    }
+                    if ("white medium".equals(message)) {
+                        return new Criteria(List.of(
+                                new Filter("color", FilterOperator.EQUALS, "WHITE"),
+                                new Filter("size", FilterOperator.EQUALS, "M")), null, 10, 0);
+                    }
+                    if ("under 30".equals(message)) {
+                        return new Criteria(List.of(
+                                new Filter("price", FilterOperator.LESS_THAN, new BigDecimal("30"))), null, 10, 0);
+                    }
+                    return null;
                 }
-                if ("white medium".equals(message)) {
-                    return new Criteria(List.of(
-                            new Filter("color", FilterOperator.EQUALS, "WHITE"),
-                            new Filter("size", FilterOperator.EQUALS, "M")), null, 10, 0);
+
+                @Override
+                public Criteria interpretTurn(
+                        String message,
+                        dev.julioperez.nls.products.domain.search.SearchSchema schema,
+                        Criteria current,
+                        dev.julioperez.nls.products.application.SearchConversationContext context) {
+                    searchContextRecorder.record(context);
+                    if ("volvamos a lo primero".equals(message)
+                            && "SEARCH_1".equals(context.resolvedSearchReference())) {
+                        return current;
+                    }
+                    return SearchDecisionEngine.super.interpretTurn(message, schema, current);
                 }
-                if ("under 30".equals(message)) {
-                    return new Criteria(List.of(
-                            new Filter("price", FilterOperator.LESS_THAN, new BigDecimal("30"))), null, 10, 0);
-                }
-                return null;
             };
+        }
+    }
+
+    static class SearchContextRecorder {
+        private final List<SearchConversationContext> contexts = new CopyOnWriteArrayList<>();
+
+        void record(SearchConversationContext context) {
+            contexts.add(context);
+        }
+
+        SearchConversationContext last() {
+            return contexts.getLast();
+        }
+
+        void clear() {
+            contexts.clear();
+        }
+
+        int size() {
+            return contexts.size();
         }
     }
 }

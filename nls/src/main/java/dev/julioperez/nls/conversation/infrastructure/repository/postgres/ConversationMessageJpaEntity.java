@@ -57,4 +57,13 @@ public class ConversationMessageJpaEntity {
         return id;
     }
 
+    public long getSequence() {
+        return sequence;
+    }
+
+    public ConversationMessage toDomain() {
+        return new ConversationMessage(
+                id, conversationId, sequence, direction, content, providerMessageId, replyToMessageId, createdAt);
+    }
+
 }

@@ -7,6 +7,9 @@ import dev.julioperez.nls.conversation.domain.ConversationMessageDirection;
 import dev.julioperez.nls.conversation.domain.ConversationRepository;
 import dev.julioperez.nls.conversation.infrastructure.security.ConversationIdentityHasher;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
@@ -62,6 +65,38 @@ public class ConversationPostgresRepository implements ConversationRepository {
     @Transactional(readOnly = true)
     public long countMessages(UUID conversationId) {
         return messages.countByConversationId(conversationId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ConversationMessage> latestMessages(UUID conversationId, int maximumMessages) {
+        int boundedMaximum = Math.max(0, Math.min(maximumMessages, 20));
+        List<ConversationMessageJpaEntity> latest = messages
+                .findTop20ByConversationIdOrderBySequenceDesc(conversationId);
+        return chronological(latest, boundedMaximum);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ConversationMessage> latestMessagesAfterSequence(
+            UUID conversationId,
+            long sequenceExclusive,
+            int maximumMessages) {
+        int boundedMaximum = Math.max(0, Math.min(maximumMessages, 20));
+        List<ConversationMessageJpaEntity> latest = messages
+                .findTop20ByConversationIdAndSequenceGreaterThanOrderBySequenceDesc(conversationId, sequenceExclusive);
+        return chronological(latest, boundedMaximum);
+    }
+
+    private static List<ConversationMessage> chronological(
+            List<ConversationMessageJpaEntity> latest,
+            int maximumMessages) {
+        List<ConversationMessage> ordered = new ArrayList<>(latest.stream()
+                .limit(maximumMessages)
+                .map(ConversationMessageJpaEntity::toDomain)
+                .toList());
+        ordered.sort(Comparator.comparingLong(ConversationMessage::sequence));
+        return List.copyOf(ordered);
     }
 
     @Override

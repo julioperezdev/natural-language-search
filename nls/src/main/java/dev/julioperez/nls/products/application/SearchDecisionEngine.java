@@ -27,4 +27,13 @@ public interface SearchDecisionEngine {
                 delta.limit() == null ? previous.limit() : delta.limit(),
                 0);
     }
+
+    /** Interprets a turn with prior messages and validated search snapshots available for references. */
+    default Criteria interpretTurn(
+            String message,
+            SearchSchema schema,
+            Criteria current,
+            SearchConversationContext context) {
+        return interpretTurn(message, schema, current);
+    }
 }

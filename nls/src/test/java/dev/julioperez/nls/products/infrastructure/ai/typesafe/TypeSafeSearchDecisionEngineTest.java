@@ -12,6 +12,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 import dev.julioperez.nls.products.application.SearchInterpretationFailedException;
 import dev.julioperez.nls.products.application.SearchInterpretationUnavailableException;
+import dev.julioperez.nls.products.application.SearchConversationContext;
 import dev.julioperez.nls.products.domain.search.Criteria;
 import dev.julioperez.nls.products.domain.search.Filter;
 import dev.julioperez.nls.products.domain.search.FilterOperator;
@@ -59,6 +60,104 @@ class TypeSafeSearchDecisionEngineTest {
         assertThat(criteria.filters().getFirst().operator()).isEqualTo(FilterOperator.LESS_THAN_OR_EQUAL);
         assertThat(criteria.filters().getFirst().value()).isEqualTo(new BigDecimal("50000"));
         assertThat(criteria.limit()).isEqualTo(10);
+        server.verify();
+    }
+
+    @Test
+    void evaluationContextIsStructuredAndKeepsTheLatestMessageAndValidatedCriteriaSeparate() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        TypeSafeSearchDecisionEngine engine = new TypeSafeSearchDecisionEngine(
+                builder.build(), properties(), () -> "synthetic-typesafe-key");
+        Criteria current = new Criteria(List.of(
+                new Filter("category", FilterOperator.EQUALS, "REMERAS"),
+                new Filter("size", FilterOperator.EQUALS, "M")), null, 10, 0);
+        SearchConversationContext context = new SearchConversationContext(List.of(
+                new SearchConversationContext.Turn(SearchConversationContext.Role.USER, "¿Qué remeras talle M hay?"),
+                new SearchConversationContext.Turn(SearchConversationContext.Role.ASSISTANT,
+                        "Primera opción blanca; segunda opción negra.")));
+        String contextualResponse = """
+                {"model":"jev-1.13.0","usage":{"input_tokens":123,"output_tokens":9},"answers":{
+                  "searchIntent":%s,
+                  "category":%s,
+                  "color":%s,
+                  "size":%s,
+                  "productName":%s
+                }}
+                """.formatted(
+                answer("SEARCH_PRODUCTS", List.of("SEARCH_PRODUCTS", "BROWSE_CATALOG", "NOT_PRODUCT_SEARCH")),
+                answer("__KEEP__", List.of("REMERAS", "BUZOS", "__KEEP__", "__CLEAR__")),
+                answer("BLACK", List.of("BLACK", "WHITE", "__NONE__")),
+                answer("__KEEP__", List.of("M", "L", "__KEEP__", "__CLEAR__")),
+                answer("__NONE__", List.of("PRODUCT_1", "PRODUCT_2", "__NONE__")));
+
+        server.expect(requestTo("https://api.typesafe.ai/v1/systemone"))
+                .andExpect(jsonPath("$.state.latestMessage").value("Me quedo con la segunda."))
+                .andExpect(jsonPath("$.state.currentValidatedCriteria.filters[0].field").value("category"))
+                .andExpect(jsonPath("$.state.conversationHistory[0].role").value("user"))
+                .andExpect(jsonPath("$.state.conversationHistory[1].role").value("assistant"))
+                .andExpect(jsonPath("$.questions.searchIntent.instructions")
+                        .value(org.hamcrest.Matchers.containsString("classify a correction, selection")))
+                .andRespond(withSuccess(contextualResponse, MediaType.APPLICATION_JSON));
+
+        TypeSafeInterpretationEvaluation result = engine.interpretForEvaluation(
+                "Me quedo con la segunda.", schema(), current, context);
+
+        assertThat(result.inputTokens()).isEqualTo(123);
+        assertThat(result.outputTokens()).isEqualTo(9);
+        assertThat(result.method()).isEqualTo("typesafe");
+        assertThat(result.providerModel()).isEqualTo("jev-1.13.0");
+        assertThat(result.providerDecisions())
+                .anySatisfy(decision -> {
+                    assertThat(decision.field()).isEqualTo("color");
+                    assertThat(decision.choice()).isEqualTo("BLACK");
+                    assertThat(decision.confidence()).isEqualTo(0.9);
+                    assertThat(decision.probabilities()).containsEntry("BLACK", 0.9);
+                    assertThat(decision.probabilities()).containsKeys("WHITE", "__NONE__");
+                });
+        assertThat(value(result.criteria(), "category")).isEqualTo("REMERAS");
+        server.verify();
+    }
+
+    @Test
+    void restoresAReferencedValidatedSearchBeforeApplyingTheLatestCorrection() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        TypeSafeSearchDecisionEngine engine = new TypeSafeSearchDecisionEngine(
+                builder.build(), properties(), () -> "synthetic-typesafe-key");
+        Criteria firstSearch = criteria("BUZOS", "BLACK", "L");
+        Criteria current = criteria("REMERAS", "WHITE", "L");
+        SearchConversationContext context = new SearchConversationContext(
+                List.of(new SearchConversationContext.Turn(
+                        SearchConversationContext.Role.USER, "Busco buzos negros talle L")),
+                List.of(new SearchConversationContext.SearchSnapshot(1, firstSearch, 2)));
+        String response = """
+                {"answers":{
+                  "searchReference":%s,
+                  "searchIntent":%s,
+                  "category":%s,
+                  "color":%s,
+                  "size":%s
+                }}
+                """.formatted(
+                answer("SEARCH_1", List.of("CURRENT_SEARCH", "SEARCH_1")),
+                answer("SEARCH_PRODUCTS", List.of("SEARCH_PRODUCTS", "BROWSE_CATALOG", "NOT_PRODUCT_SEARCH")),
+                answer("__KEEP__", List.of("REMERAS", "BUZOS", "__KEEP__", "__CLEAR__")),
+                answer("__KEEP__", List.of("BLACK", "WHITE", "__KEEP__", "__CLEAR__")),
+                answer("M", List.of("M", "L", "__KEEP__", "__CLEAR__")));
+
+        server.expect(requestTo("https://api.typesafe.ai/v1/systemone"))
+                .andExpect(jsonPath("$.state.validatedSearchSnapshots[0].reference").value("SEARCH_1"))
+                .andExpect(jsonPath("$.questions.searchReference.criteria.SEARCH_1")
+                        .value(org.hamcrest.Matchers.containsString("BUZOS")))
+                .andRespond(withSuccess(response, MediaType.APPLICATION_JSON));
+
+        Criteria restored = engine.interpretTurn(
+                "Volvamos a lo primero, pero en M", schemaWithoutProductName(), current, context);
+
+        assertThat(value(restored, "category")).isEqualTo("BUZOS");
+        assertThat(value(restored, "color")).isEqualTo("BLACK");
+        assertThat(value(restored, "size")).isEqualTo("M");
         server.verify();
     }
 
@@ -127,6 +226,72 @@ class TypeSafeSearchDecisionEngineTest {
     }
 
     @Test
+    void appliesColloquialPriceRefinementsWithoutDroppingActiveFilters() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        TypeSafeSearchDecisionEngine engine = new TypeSafeSearchDecisionEngine(
+                builder.build(), properties(), () -> {
+                    throw new AssertionError("Deterministic refinements must not call TypeSafe.");
+                });
+        Criteria current = new Criteria(List.of(
+                new Filter("category", FilterOperator.EQUALS, "REMERAS"),
+                new Filter("color", FilterOperator.EQUALS, "BLACK")), null, 10, 0);
+
+        Criteria explicitBudget = engine.interpretTurn("Y hasta 25mil", schema(), current);
+        Criteria conversationalBudget = engine.interpretTurn("Solo tengo 25mil", schema(), explicitBudget);
+
+        assertThat(value(explicitBudget, "category")).isEqualTo("REMERAS");
+        assertThat(value(explicitBudget, "color")).isEqualTo("BLACK");
+        assertThat(filter(explicitBudget, "price").operator()).isEqualTo(FilterOperator.LESS_THAN_OR_EQUAL);
+        assertThat(filter(explicitBudget, "price").value()).isEqualTo(new BigDecimal("25000"));
+        assertThat(value(conversationalBudget, "category")).isEqualTo("REMERAS");
+        assertThat(value(conversationalBudget, "color")).isEqualTo("BLACK");
+        assertThat(filter(conversationalBudget, "price").value()).isEqualTo(new BigDecimal("25000"));
+        server.verify();
+    }
+
+    @Test
+    void replacesColloquialColorAndKeepsPriceAndCategoryForTheNextMessage() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        TypeSafeSearchDecisionEngine engine = new TypeSafeSearchDecisionEngine(
+                builder.build(), properties(), () -> {
+                    throw new AssertionError("Deterministic refinements must not call TypeSafe.");
+                });
+        Criteria current = new Criteria(List.of(
+                new Filter("category", FilterOperator.EQUALS, "REMERAS"),
+                new Filter("color", FilterOperator.EQUALS, "BLACK"),
+                new Filter("price", FilterOperator.LESS_THAN_OR_EQUAL, new BigDecimal("25000"))),
+                null, 10, 0);
+
+        Criteria white = engine.interpretTurn("Mejor blancas", schema(), current);
+        Criteria repeatedCategory = engine.interpretTurn("Tenés remeras?", schema(), white);
+
+        assertThat(value(white, "category")).isEqualTo("REMERAS");
+        assertThat(value(white, "color")).isEqualTo("WHITE");
+        assertThat(filter(white, "price").value()).isEqualTo(new BigDecimal("25000"));
+        assertThat(value(repeatedCategory, "category")).isEqualTo("REMERAS");
+        assertThat(value(repeatedCategory, "color")).isEqualTo("WHITE");
+        assertThat(filter(repeatedCategory, "price").value()).isEqualTo(new BigDecimal("25000"));
+        server.verify();
+    }
+
+    @Test
+    void sendsAmbiguousRelativePriceRefinementsToTypeSafeInsteadOfApplyingThemDirectly() {
+        Criteria current = new Criteria(List.of(
+                new Filter("category", FilterOperator.EQUALS, "REMERAS"),
+                new Filter("color", FilterOperator.EQUALS, "BLACK"),
+                new Filter("size", FilterOperator.EQUALS, "M")), null, 10, 0);
+        String message = "solo las de menos de 40 mil";
+        List<Filter> deterministic = ConversationalSearchCriteriaRefiner.deterministicFilters(
+                message, schema(), current);
+
+        assertThat(deterministic).hasSize(1);
+        assertThat(ConversationalSearchCriteriaRefiner.refine(message, schema(), current, deterministic))
+                .isEmpty();
+    }
+
+    @Test
     void rejectsInvalidProviderChoicesAndMapsProviderHttpErrorsToUnavailable() {
         RestClient.Builder invalidBuilder = RestClient.builder();
         MockRestServiceServer invalidServer = MockRestServiceServer.bindTo(invalidBuilder).build();
@@ -181,6 +346,20 @@ class TypeSafeSearchDecisionEngineTest {
                 new SearchPaginationSchema(10, 50));
     }
 
+    private static SearchSchema schemaWithoutProductName() {
+        SearchSchema full = schema();
+        return new SearchSchema("product-search", full.fields().stream()
+                .filter(field -> !field.name().equals("productName"))
+                .toList(), full.pagination());
+    }
+
+    private static Criteria criteria(String category, String color, String size) {
+        return new Criteria(List.of(
+                new Filter("category", FilterOperator.EQUALS, category),
+                new Filter("color", FilterOperator.EQUALS, color),
+                new Filter("size", FilterOperator.EQUALS, size)), null, 10, 0);
+    }
+
     private static SearchFieldSchema field(
             String name,
             SearchFieldType type,
@@ -188,6 +367,17 @@ class TypeSafeSearchDecisionEngineTest {
             List<String> values,
             boolean sortable) {
         return new SearchFieldSchema(name, name, type, operators, values, true, sortable);
+    }
+
+    private static Filter filter(Criteria criteria, String field) {
+        return criteria.filters().stream()
+                .filter(candidate -> candidate.field().equals(field))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private static Object value(Criteria criteria, String field) {
+        return filter(criteria, field).value();
     }
 
     private static String response() {

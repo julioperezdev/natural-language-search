@@ -24,9 +24,34 @@ public class ConversationStateCodec {
         }
     }
 
+    /** Reads both the original criteria-only JSON and the current structured conversation state. */
+    public ConversationSearchState decodeState(String json, int defaultLimit) {
+        if (json == null || json.isBlank()) {
+            return ConversationSearchState.empty(emptyCriteria(defaultLimit));
+        }
+        try {
+            tools.jackson.databind.JsonNode root = objectMapper.readTree(json);
+            if (root != null && root.has("currentCriteria")) {
+                return objectMapper.readValue(json, ConversationSearchState.class);
+            }
+            Criteria legacyCriteria = objectMapper.readValue(json, Criteria.class);
+            return ConversationSearchState.empty(legacyCriteria);
+        } catch (RuntimeException exception) {
+            throw new IllegalStateException("Stored conversation search state is invalid.", exception);
+        }
+    }
+
     public String encodeCriteria(Criteria criteria) {
         try {
             return objectMapper.writeValueAsString(criteria);
+        } catch (RuntimeException exception) {
+            throw new IllegalStateException("Conversation search state could not be stored.", exception);
+        }
+    }
+
+    public String encodeState(ConversationSearchState state) {
+        try {
+            return objectMapper.writeValueAsString(state);
         } catch (RuntimeException exception) {
             throw new IllegalStateException("Conversation search state could not be stored.", exception);
         }

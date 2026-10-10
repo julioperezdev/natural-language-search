@@ -1,0 +1,219 @@
+[
+  {
+    "id": "select-second-result",
+    "history": [
+      {"role": "user", "content": "¿Qué remeras talle M hay?"},
+      {"role": "assistant", "content": "Primera opción: remera blanca talle M, 22.990. Segunda opción: remera negra talle M, 24.990."}
+    ],
+    "message": "Me quedo con la segunda.",
+    "currentCriteria": [
+      {"field": "category", "operator": "=", "value": "REMERAS"},
+      {"field": "size", "operator": "=", "value": "M"}
+    ],
+    "expectedCriteria": [
+      {"field": "category", "operator": "=", "value": "REMERAS"},
+      {"field": "color", "operator": "=", "value": "BLACK"},
+      {"field": "size", "operator": "=", "value": "M"}
+    ],
+    "expectedDecisions": {
+      "searchIntent": "SEARCH_PRODUCTS",
+      "category": "__KEEP__",
+      "color": "BLACK",
+      "size": "__KEEP__"
+    }
+  },
+  {
+    "id": "refer-to-first-request-after-topic-change",
+    "searchSnapshots": [
+      {
+        "sequence": 1,
+        "criteria": [
+          {"field": "category", "operator": "=", "value": "BUZOS"},
+          {"field": "color", "operator": "=", "value": "BLACK"},
+          {"field": "size", "operator": "=", "value": "L"}
+        ],
+        "totalResults": 2
+      },
+      {
+        "sequence": 2,
+        "criteria": [
+          {"field": "category", "operator": "=", "value": "REMERAS"},
+          {"field": "color", "operator": "=", "value": "WHITE"},
+          {"field": "size", "operator": "=", "value": "M"}
+        ],
+        "totalResults": 1
+      }
+    ],
+    "history": [
+      {"role": "user", "content": "Quiero un buzo negro talle L."},
+      {"role": "assistant", "content": "Busqué buzos negros talle L."},
+      {"role": "user", "content": "Ahora busco remeras blancas talle M."},
+      {"role": "assistant", "content": "Encontré remeras blancas talle M."},
+      {"role": "user", "content": "¿Tenés otras remeras blancas?"},
+      {"role": "assistant", "content": "También hay otra opción de remera blanca talle M."},
+      {"role": "user", "content": "¿Y cuánto cuesta?"},
+      {"role": "assistant", "content": "La opción cuesta 22.990."},
+      {"role": "user", "content": "¿Hay más remeras blancas?"},
+      {"role": "assistant", "content": "Sí, hay otra alternativa blanca."},
+      {"role": "user", "content": "Dejame la M."},
+      {"role": "assistant", "content": "Filtro talle M."},
+      {"role": "user", "content": "¿Cuál era el precio?"},
+      {"role": "assistant", "content": "La opción está a 22.990."},
+      {"role": "user", "content": "¿Y si busco negras?"},
+      {"role": "assistant", "content": "También hay variantes negras."},
+      {"role": "user", "content": "Mejor sigamos con las blancas."},
+      {"role": "assistant", "content": "Mantengo la remera blanca talle M."},
+      {"role": "user", "content": "Gracias."},
+      {"role": "assistant", "content": "De nada."}
+    ],
+    "message": "Volvamos a lo primero, pero en M.",
+    "currentCriteria": [
+      {"field": "category", "operator": "=", "value": "REMERAS"},
+      {"field": "color", "operator": "=", "value": "WHITE"},
+      {"field": "size", "operator": "=", "value": "M"}
+    ],
+    "expectedCriteria": [
+      {"field": "category", "operator": "=", "value": "BUZOS"},
+      {"field": "color", "operator": "=", "value": "BLACK"},
+      {"field": "size", "operator": "=", "value": "M"}
+    ],
+    "expectedDecisions": {
+      "searchIntent": "SEARCH_PRODUCTS",
+      "category": "__KEEP__",
+      "color": "__KEEP__",
+      "size": "M"
+    }
+  },
+  {
+    "id": "correct-previous-size",
+    "history": [
+      {"role": "user", "content": "Quiero una remera blanca talle L hasta 30 mil."},
+      {"role": "assistant", "content": "Estoy buscando una remera blanca talle L de hasta 30.000."}
+    ],
+    "message": "Perdón, quise decir M.",
+    "currentCriteria": [
+      {"field": "category", "operator": "=", "value": "REMERAS"},
+      {"field": "color", "operator": "=", "value": "WHITE"},
+      {"field": "size", "operator": "=", "value": "L"},
+      {"field": "price", "operator": "<=", "value": 30000}
+    ],
+    "expectedCriteria": [
+      {"field": "category", "operator": "=", "value": "REMERAS"},
+      {"field": "color", "operator": "=", "value": "WHITE"},
+      {"field": "size", "operator": "=", "value": "M"},
+      {"field": "price", "operator": "<=", "value": 30000}
+    ],
+    "expectedDecisions": {
+      "searchIntent": "SEARCH_PRODUCTS",
+      "category": "__KEEP__",
+      "color": "__KEEP__",
+      "size": "M"
+    }
+  },
+  {
+    "id": "observed-broad-remera-search",
+    "source": "user-provided-transcript",
+    "history": [],
+    "message": "Hola, tenes remeras?",
+    "currentCriteria": [],
+    "expectedCriteria": [
+      {"field": "category", "operator": "=", "value": "REMERAS"}
+    ],
+    "expectedDecisions": {
+      "searchIntent": "SEARCH_PRODUCTS",
+      "category": "REMERAS",
+      "color": "__NONE__",
+      "size": "__NONE__"
+    }
+  },
+  {
+    "id": "observed-budget-followup",
+    "source": "user-provided-transcript",
+    "history": [
+      {"role": "user", "content": "Hola, tenes remeras?"},
+      {"role": "assistant", "content": "Hay una remera básica con variantes blanca y negra."},
+      {"role": "user", "content": "Negras, por favor."},
+      {"role": "assistant", "content": "La variante negra cuesta 24.990."}
+    ],
+    "message": "Y hasta 25mil",
+    "currentCriteria": [
+      {"field": "category", "operator": "=", "value": "REMERAS"},
+      {"field": "color", "operator": "=", "value": "BLACK"}
+    ],
+    "expectedCriteria": [
+      {"field": "category", "operator": "=", "value": "REMERAS"},
+      {"field": "color", "operator": "=", "value": "BLACK"},
+      {"field": "price", "operator": "<=", "value": 25000}
+    ],
+    "expectedDecisions": {
+      "searchIntent": "SEARCH_PRODUCTS",
+      "category": "__KEEP__",
+      "color": "__KEEP__",
+      "size": "__NONE__"
+    }
+  },
+  {
+    "id": "observed-replace-color",
+    "source": "user-provided-transcript",
+    "history": [
+      {"role": "user", "content": "Hola, tenes remeras?"},
+      {"role": "assistant", "content": "Encontré una remera blanca y una negra."},
+      {"role": "user", "content": "Negras, por favor."},
+      {"role": "assistant", "content": "La remera negra cuesta 24.990."},
+      {"role": "user", "content": "Solo tengo 30mil."},
+      {"role": "assistant", "content": "La remera negra cuesta menos de 30.000."}
+    ],
+    "message": "Mejor que sean blancas",
+    "currentCriteria": [
+      {"field": "category", "operator": "=", "value": "REMERAS"},
+      {"field": "color", "operator": "=", "value": "BLACK"},
+      {"field": "price", "operator": "<=", "value": 30000}
+    ],
+    "expectedCriteria": [
+      {"field": "category", "operator": "=", "value": "REMERAS"},
+      {"field": "color", "operator": "=", "value": "WHITE"},
+      {"field": "price", "operator": "<=", "value": 30000}
+    ],
+    "expectedDecisions": {
+      "searchIntent": "SEARCH_PRODUCTS",
+      "category": "__KEEP__",
+      "color": "WHITE",
+      "size": "__NONE__"
+    }
+  },
+  {
+    "id": "observed-correct-size",
+    "source": "user-provided-transcript",
+    "history": [
+      {"role": "user", "content": "Hola, tenes remeras?"},
+      {"role": "assistant", "content": "Encontré una remera blanca y una negra."},
+      {"role": "user", "content": "Negras, por favor."},
+      {"role": "assistant", "content": "La remera negra cuesta 24.990."},
+      {"role": "user", "content": "Solo tengo 30mil."},
+      {"role": "assistant", "content": "La remera negra cuesta menos de 30.000."},
+      {"role": "user", "content": "Mejor que sean blancas."},
+      {"role": "assistant", "content": "La remera blanca cuesta 22.990."},
+      {"role": "user", "content": "Y talla L?"},
+      {"role": "assistant", "content": "No encontré productos que coincidan con tu pedido."}
+    ],
+    "message": "Quise decir M",
+    "currentCriteria": [
+      {"field": "category", "operator": "=", "value": "REMERAS"},
+      {"field": "color", "operator": "=", "value": "WHITE"},
+      {"field": "size", "operator": "=", "value": "L"},
+      {"field": "price", "operator": "<=", "value": 30000}
+    ],
+    "expectedCriteria": [
+      {"field": "category", "operator": "=", "value": "REMERAS"},
+      {"field": "color", "operator": "=", "value": "WHITE"},
+      {"field": "size", "operator": "=", "value": "M"},
+      {"field": "price", "operator": "<=", "value": 30000}
+    ],
+    "expectedDecisions": {
+      "searchIntent": "SEARCH_PRODUCTS",
+      "category": "__KEEP__",
+      "color": "__KEEP__",
+      "size": "M"
+    }
+  }
+]

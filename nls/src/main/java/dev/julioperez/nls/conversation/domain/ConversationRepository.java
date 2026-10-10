@@ -1,6 +1,7 @@
 package dev.julioperez.nls.conversation.domain;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,6 +17,13 @@ public interface ConversationRepository {
             Instant processedAt);
 
     long countMessages(UUID conversationId);
+
+    List<ConversationMessage> latestMessages(UUID conversationId, int maximumMessages);
+
+    List<ConversationMessage> latestMessagesAfterSequence(
+            UUID conversationId,
+            long sequenceExclusive,
+            int maximumMessages);
 
     UUID append(ConversationMessage message);
 

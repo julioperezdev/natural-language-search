@@ -1,9 +1,12 @@
 package dev.julioperez.nls.productsearch.application;
 
 import dev.julioperez.nls.products.application.ProductSearchService;
+import dev.julioperez.nls.products.application.SearchConversationContext;
 import dev.julioperez.nls.products.application.SearchInterpretationFailedException;
+import dev.julioperez.nls.products.application.SearchSnapshotReferenceResolver;
 import dev.julioperez.nls.products.domain.search.Criteria;
 import dev.julioperez.nls.products.domain.search.ProductSearchPage;
+import dev.julioperez.nls.infrastructure.logging.RequestLogContext;
 import dev.julioperez.nls.productsearch.domain.ProductSearchAnswerOutcome;
 import dev.julioperez.nls.productsearchresponses.application.ProductSearchResponseService;
 import dev.julioperez.nls.productsearchresponses.domain.HumanizedProductSearchResponse;
@@ -12,10 +15,13 @@ import dev.julioperez.nls.productsearchresponses.domain.SearchResultFacts;
 import dev.julioperez.nls.productsearchresponses.domain.SearchVariantFact;
 import java.util.List;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ProductSearchConversationService {
+    private static final Logger log = LoggerFactory.getLogger(ProductSearchConversationService.class);
     private static final Pattern RESET_CONTEXT = Pattern.compile(
             "(?iu)\\b(?:olvida(?:te)?\\s+(?:(?:lo\\s+)?anterior|todo)|"
                     + "empecemos?\\s+(?:de\\s+nuevo|desde\\s+cero)|"
@@ -36,22 +42,47 @@ public class ProductSearchConversationService {
     }
 
     public ProductSearchAnswer answer(String message, Criteria currentCriteria) {
+        return answer(message, currentCriteria, SearchConversationContext.empty());
+    }
+
+    public ProductSearchAnswer answer(
+            String message,
+            Criteria currentCriteria,
+            SearchConversationContext conversationContext) {
         Criteria previous = currentCriteria == null
                 ? new Criteria(List.of(), null, 10, 0)
                 : currentCriteria;
+        SearchConversationContext context = conversationContext == null
+                ? SearchConversationContext.empty()
+                : conversationContext;
         String interpretationMessage = message;
         var resetMatcher = RESET_CONTEXT.matcher(message);
         if (resetMatcher.find()) {
             previous = new Criteria(List.of(), null, previous.limit(), 0);
+            context = SearchConversationContext.empty();
             interpretationMessage = resetMatcher.replaceAll(" ").strip();
         }
         if (interpretationMessage.isBlank()) {
             return clarification(previous);
         }
 
+        boolean explicitSearchReference = SearchSnapshotReferenceResolver.isExplicitReference(interpretationMessage);
+        var referencedSearch = SearchSnapshotReferenceResolver.resolve(
+                interpretationMessage, context.searchSnapshots());
+        if (explicitSearchReference && referencedSearch.isEmpty()) {
+            return clarification(previous);
+        }
+        if (referencedSearch.isPresent()) {
+            var selected = referencedSearch.get();
+            previous = selected.criteria();
+            context = new SearchConversationContext(List.of(), List.of(), selected.reference());
+            log.info("CONVERSATION_SEARCH_REFERENCE_RESOLVED requestId={} reference={} method=explicit_reference",
+                    RequestLogContext.requestId(), selected.reference());
+        }
+
         Criteria criteria;
         try {
-            criteria = productSearch.interpret(interpretationMessage, previous);
+            criteria = productSearch.interpret(interpretationMessage, previous, context);
         } catch (SearchInterpretationFailedException exception) {
             return clarification(previous);
         }
@@ -61,10 +92,17 @@ public class ProductSearchConversationService {
                 ProductSearchAnswerOutcome.valueOf(response.outcome().name()), response.reply(), results, criteria);
     }
 
+    public boolean isContextResetMessage(String message) {
+        return message != null && RESET_CONTEXT.matcher(message).find();
+    }
+
     private ProductSearchAnswer clarification(Criteria criteria) {
+        String reply = criteria.filters().isEmpty()
+                ? "No pude identificar con seguridad qué producto o característica buscás. ¿Podés darme un poco más de detalle?"
+                : "Mantengo los filtros de tu búsqueda actual. ¿Qué querés cambiar o agregar, por ejemplo el color, el talle o el precio?";
         return new ProductSearchAnswer(
                 ProductSearchAnswerOutcome.NEEDS_CLARIFICATION,
-                "No pude identificar con seguridad qué producto o característica buscás. ¿Podés darme un poco más de detalle?",
+                reply,
                 null,
                 criteria);
     }
