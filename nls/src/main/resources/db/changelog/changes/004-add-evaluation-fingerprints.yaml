@@ -1,0 +1,36 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-add-evaluation-fingerprints
+      author: natural-language-search
+      changes:
+        - addColumn:
+            tableName: evaluation_runs
+            columns:
+              - column:
+                  name: catalog_version
+                  type: VARCHAR(80)
+                  defaultValue: unknown
+                  constraints:
+                    nullable: false
+              - column:
+                  name: corpus_sha256
+                  type: VARCHAR(64)
+                  defaultValue: unknown
+                  constraints:
+                    nullable: false
+              - column:
+                  name: catalog_sha256
+                  type: VARCHAR(64)
+                  defaultValue: unknown
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropColumn:
+            tableName: evaluation_runs
+            columnName: catalog_version
+        - dropColumn:
+            tableName: evaluation_runs
+            columnName: corpus_sha256
+        - dropColumn:
+            tableName: evaluation_runs
+            columnName: catalog_sha256

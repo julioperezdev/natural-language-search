@@ -31,6 +31,10 @@ Con `NLS_SWAGGER_ENABLED=true`, la documentación interactiva se sirve en [http:
 
 Las pruebas no llaman a TypeSafe. El adaptador Jev se prueba con respuestas HTTP sintéticas.
 
+## Evaluaciones conversacionales
+
+La guía del corpus de conversaciones, el endpoint asíncrono de evaluación, el catálogo de prueba y las condiciones para habilitarlo localmente están en [`EVALUATIONS.md`](EVALUATIONS.md). El endpoint está apagado por defecto y rechaza hosts de base de datos fuera de la lista local configurada.
+
 ## API
 
 ### Capacidades de búsqueda

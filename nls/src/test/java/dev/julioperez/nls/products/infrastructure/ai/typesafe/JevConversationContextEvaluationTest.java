@@ -60,6 +60,45 @@ class JevConversationContextEvaluationTest {
     }
 
     @Test
+    void inspectsProviderChoicesForAColloquialColorReplacement() {
+        assumeTrue(Boolean.getBoolean("nls.jev.diagnostic.enabled"),
+                "Enable the one-call live JEV diagnostic with -Dnls.jev.diagnostic.enabled=true.");
+
+        JsonMapper mapper = JsonMapper.builder().build();
+        TypeSafeSearchProperties properties = properties();
+        Region region = Region.of(System.getProperty(
+                "nls.jev.evaluation.region", System.getenv().getOrDefault("NLS_AWS_REGION", "us-east-1")));
+        Criteria current = new Criteria(List.of(
+                new Filter("category", FilterOperator.EQUALS, "BUZOS"),
+                new Filter("color", FilterOperator.EQUALS, "NEGRO"),
+                new Filter("size", FilterOperator.EQUALS, "M")), null, 10, 0);
+        SearchConversationContext context = new SearchConversationContext(
+                List.of(
+                        new SearchConversationContext.Turn(
+                                SearchConversationContext.Role.USER, "Me mostrás buzos color negras, talla M?"),
+                        new SearchConversationContext.Turn(
+                                SearchConversationContext.Role.ASSISTANT,
+                                "Encontré 1 producto para tu pedido. Te comparto esta opción:\n\n"
+                                        + "• Buzo canguro de frisa (BUZOS). Variantes que coinciden: "
+                                        + "NEGRO / talle M — precio 45.990 — 6 unidades disponibles.")),
+                List.of(new SearchConversationContext.SearchSnapshot(1, current, 1)));
+
+        try (SecretsManagerClient secrets = SecretsManagerClient.builder().region(region).build()) {
+            TypeSafeSearchDecisionEngine engine = new TypeSafeSearchDecisionEngine(
+                    RestClient.builder().build(), properties,
+                    new AwsTypeSafeApiKeyProvider(secrets, mapper, properties));
+            TypeSafeInterpretationEvaluation result = engine.interpretForEvaluation(
+                    "En realidad, prefiero grises.", diagnosticSchema(), current, context);
+
+            log.info("JEV_COLOR_REPLACEMENT_DIAGNOSTIC method={} failureReason={} failureField={} choices={} decisions={}",
+                    result.method(), result.failureReason(), result.failureField(), result.providerChoices(),
+                    result.providerDecisions());
+            assertThat(result.providerDecisions()).anySatisfy(
+                    decision -> assertThat(decision.field()).isEqualTo("color"));
+        }
+    }
+
+    @Test
     void comparesBaselineRecentAndFullConversationContextWithJev() throws Exception {
         assumeTrue(Boolean.getBoolean("nls.jev.evaluation.enabled"),
                 "Enable the live JEV evaluation explicitly with -Dnls.jev.evaluation.enabled=true.");
@@ -584,6 +623,18 @@ class JevConversationContextEvaluationTest {
                 field("price", SearchFieldType.NUMBER, List.of("=", "<", "<=", ">", ">="), List.of()),
                 field("productName", SearchFieldType.STRING, List.of("=", "CONTAINS"), List.of()),
                 field("size", SearchFieldType.ENUM, List.of("=", "IN"), List.of("M", "L")),
+                field("stock", SearchFieldType.INTEGER, List.of("=", ">", ">=", "<", "<="), List.of())),
+                new SearchPaginationSchema(10, 50));
+    }
+
+    private static SearchSchema diagnosticSchema() {
+        return new SearchSchema("product-search", List.of(
+                field("category", SearchFieldType.ENUM, List.of("=", "IN"),
+                        List.of("BUZOS", "CAMISAS", "JEANS", "PANTALONES", "REMERAS", "VESTIDOS", "ZAPATILLAS")),
+                field("color", SearchFieldType.ENUM, List.of("=", "IN"), List.of("AZUL", "BLANCO", "GRIS", "NEGRO")),
+                field("price", SearchFieldType.NUMBER, List.of("=", "<", "<=", ">", ">="), List.of()),
+                field("productName", SearchFieldType.STRING, List.of("=", "CONTAINS"), List.of()),
+                field("size", SearchFieldType.ENUM, List.of("=", "IN"), List.of("39", "40", "42", "L", "M", "S")),
                 field("stock", SearchFieldType.INTEGER, List.of("=", ">", ">=", "<", "<="), List.of())),
                 new SearchPaginationSchema(10, 50));
     }

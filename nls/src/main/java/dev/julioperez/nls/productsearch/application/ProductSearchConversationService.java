@@ -80,16 +80,17 @@ public class ProductSearchConversationService {
                     RequestLogContext.requestId(), selected.reference());
         }
 
-        Criteria criteria;
         try {
-            criteria = productSearch.interpret(interpretationMessage, previous, context);
+            var interpretation = productSearch.interpretWithTelemetry(interpretationMessage, previous, context);
+            Criteria criteria = interpretation.criteria();
+            ProductSearchPage results = productSearch.search(criteria);
+            HumanizedProductSearchResponse response = responseHumanizer.humanize(message, facts(results));
+            return new ProductSearchAnswer(
+                    ProductSearchAnswerOutcome.valueOf(response.outcome().name()), response.reply(), results,
+                    criteria, interpretation.telemetry());
         } catch (SearchInterpretationFailedException exception) {
-            return clarification(previous);
+            return clarification(previous, exception.telemetry());
         }
-        ProductSearchPage results = productSearch.search(criteria);
-        HumanizedProductSearchResponse response = responseHumanizer.humanize(message, facts(results));
-        return new ProductSearchAnswer(
-                ProductSearchAnswerOutcome.valueOf(response.outcome().name()), response.reply(), results, criteria);
     }
 
     public boolean isContextResetMessage(String message) {
@@ -97,6 +98,11 @@ public class ProductSearchConversationService {
     }
 
     private ProductSearchAnswer clarification(Criteria criteria) {
+        return clarification(criteria, null);
+    }
+
+    private ProductSearchAnswer clarification(
+            Criteria criteria, dev.julioperez.nls.products.application.SearchInterpretationTelemetry telemetry) {
         String reply = criteria.filters().isEmpty()
                 ? "No pude identificar con seguridad qué producto o característica buscás. ¿Podés darme un poco más de detalle?"
                 : "Mantengo los filtros de tu búsqueda actual. ¿Qué querés cambiar o agregar, por ejemplo el color, el talle o el precio?";
@@ -104,7 +110,8 @@ public class ProductSearchConversationService {
                 ProductSearchAnswerOutcome.NEEDS_CLARIFICATION,
                 reply,
                 null,
-                criteria);
+                criteria,
+                telemetry);
     }
 
     private SearchResultFacts facts(ProductSearchPage results) {

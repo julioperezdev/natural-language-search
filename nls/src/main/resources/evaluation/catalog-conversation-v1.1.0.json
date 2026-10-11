@@ -1,0 +1,5484 @@
+{
+  "version": "1.1.0",
+  "catalogVersion": "catalog-1.1.0",
+  "suites": [
+    {
+      "id": "catalog-conversation",
+      "description": "Compatibility regression subset used by the deterministic integration test.",
+      "caseIds": [
+        "black-search-add-price-limit",
+        "change-color-keeps-size"
+      ]
+    },
+    {
+      "id": "catalog-conversation-pilot",
+      "description": "Twelve manually diverse conversations for a live-provider pilot.",
+      "caseIds": [
+        "black-search-add-price-limit",
+        "typo-multiple-filters",
+        "colloquial-broad-color",
+        "elliptical-budget-context",
+        "color-replacement-keeps-size",
+        "self-correction-replaces-size",
+        "ambiguous-request-clarify-then-resolve",
+        "broad-catalog-discovery",
+        "budget-produces-no-results",
+        "category-switch-replaces-all-filters",
+        "reset-clears-search-context",
+        "restore-first-search-reference"
+      ]
+    },
+    {
+      "id": "catalog-conversation-development",
+      "description": "Forty-five development conversations, including the pilot.",
+      "caseIds": [
+        "black-search-add-price-limit",
+        "change-color-keeps-size",
+        "typo-multiple-filters",
+        "colloquial-broad-color",
+        "elliptical-budget-context",
+        "color-replacement-keeps-size",
+        "self-correction-replaces-size",
+        "ambiguous-request-clarify-then-resolve",
+        "broad-catalog-discovery",
+        "budget-produces-no-results",
+        "category-switch-replaces-all-filters",
+        "reset-clears-search-context",
+        "restore-first-search-reference",
+        "dev-context-flow-01",
+        "dev-context-flow-02",
+        "dev-context-flow-03",
+        "dev-context-flow-04",
+        "dev-context-flow-05",
+        "dev-context-flow-06",
+        "dev-context-flow-07",
+        "dev-context-flow-08",
+        "dev-context-flow-09",
+        "dev-context-flow-10",
+        "dev-context-flow-11",
+        "dev-context-flow-12",
+        "dev-context-flow-13",
+        "dev-context-flow-14",
+        "dev-context-flow-15",
+        "dev-context-flow-16",
+        "dev-context-flow-17",
+        "dev-context-flow-18",
+        "dev-context-flow-19",
+        "dev-context-flow-20",
+        "dev-context-flow-21",
+        "dev-context-flow-22",
+        "dev-context-flow-23",
+        "dev-context-flow-24",
+        "dev-context-flow-25",
+        "dev-context-flow-26",
+        "dev-context-flow-27",
+        "dev-context-flow-28",
+        "dev-context-flow-29",
+        "dev-context-flow-30",
+        "dev-context-flow-31",
+        "dev-context-flow-32"
+      ]
+    },
+    {
+      "id": "catalog-conversation-holdout",
+      "description": "Fifteen conversations reserved for final checks after tuning.",
+      "caseIds": [
+        "holdout-conversation-01",
+        "holdout-conversation-02",
+        "holdout-conversation-03",
+        "holdout-conversation-04",
+        "holdout-conversation-05",
+        "holdout-conversation-06",
+        "holdout-conversation-07",
+        "holdout-conversation-08",
+        "holdout-conversation-09",
+        "holdout-conversation-10",
+        "holdout-conversation-11",
+        "holdout-conversation-12",
+        "holdout-ambiguous-gift-clarification",
+        "holdout-typo-and-correction",
+        "holdout-english-catalog-query"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "black-search-add-price-limit",
+      "tags": [
+        "colloquial",
+        "context_add",
+        "context_replace",
+        "price"
+      ],
+      "turns": [
+        {
+          "message": "Hola, ¿tenés remeras?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "AZUL",
+              "BLANCO",
+              "NEGRO"
+            ],
+            "variants": [
+              "AZUL|M|23990|5",
+              "AZUL|M|26990|7",
+              "BLANCO|L|23990|3",
+              "BLANCO|L|27990|2",
+              "BLANCO|M|22990|8",
+              "NEGRO|L|25990|4",
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Negras, por favor",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|25990|4",
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Y hasta 26 mil",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "price|<=|26000"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|25990|4",
+              "NEGRO|M|24990|12"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor blancas",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "price|<=|26000"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|L|23990|3",
+              "BLANCO|M|22990|8"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "change-color-keeps-size",
+      "tags": [
+        "context",
+        "context_replace",
+        "regression"
+      ],
+      "turns": [
+        {
+          "message": "Quiero remeras blancas talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|M|22990|8"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor negras",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "typo-multiple-filters",
+      "tags": [
+        "typo",
+        "color",
+        "size"
+      ],
+      "turns": [
+        {
+          "message": "Busco remeraz negars talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "colloquial-broad-color",
+      "tags": [
+        "colloquial",
+        "color"
+      ],
+      "turns": [
+        {
+          "message": "Che, ¿me mostrás las remeras que sean negras?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|25990|4",
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "elliptical-budget-context",
+      "tags": [
+        "context_add",
+        "budget",
+        "price"
+      ],
+      "turns": [
+        {
+          "message": "Quiero remeras negras talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Solo tengo 26 lucas",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "price|<=|26000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "color-replacement-keeps-size",
+      "tags": [
+        "context_replace",
+        "color",
+        "size"
+      ],
+      "turns": [
+        {
+          "message": "Quiero remeras blancas talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|M|22990|8"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor las azules",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|AZUL",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|M|23990|5",
+              "AZUL|M|26990|7"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "self-correction-replaces-size",
+      "tags": [
+        "typo",
+        "context_replace",
+        "size"
+      ],
+      "turns": [
+        {
+          "message": "Busco una remera negra talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Quise decir talle L",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|25990|4"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "ambiguous-request-clarify-then-resolve",
+      "tags": [
+        "ambiguity",
+        "clarification",
+        "context"
+      ],
+      "turns": [
+        {
+          "message": "Busco algo copado para regalar",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "NEEDS_CLARIFICATION",
+            "criteria": [],
+            "productNames": [],
+            "variantColors": [],
+            "variants": [],
+            "contextAction": "ASK_CLARIFICATION",
+            "clarificationExpected": true,
+            "clarificationReason": "product_and_filter_unspecified"
+          }
+        },
+        {
+          "message": "Una remera negra",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|25990|4",
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "broad-catalog-discovery",
+      "tags": [
+        "broad_discovery",
+        "intent"
+      ],
+      "turns": [
+        {
+          "message": "¿Qué vendes? Estoy viendo opciones",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [],
+            "productNames": [
+              "Buzo canguro de frisa",
+              "Camisa de lino clásica",
+              "Jean slim elastizado",
+              "Pantalón jogger deportivo",
+              "Remera básica de algodón",
+              "Remera deportiva dry fit",
+              "Vestido camisero estampado",
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "AZUL",
+              "BLANCO",
+              "GRIS",
+              "NEGRO"
+            ],
+            "variants": [
+              "AZUL|40|59990|7",
+              "AZUL|40|89990|3",
+              "AZUL|42|61990|4",
+              "AZUL|M|23990|5",
+              "AZUL|M|26990|7",
+              "AZUL|M|46990|2",
+              "AZUL|S|56990|3",
+              "BLANCO|39|84990|5",
+              "BLANCO|L|23990|3",
+              "BLANCO|L|27990|2",
+              "BLANCO|M|22990|8",
+              "BLANCO|M|45990|3",
+              "GRIS|M|37990|6",
+              "GRIS|M|44990|4",
+              "NEGRO|39|87990|2",
+              "NEGRO|40|62990|3",
+              "NEGRO|L|25990|4",
+              "NEGRO|L|39990|3",
+              "NEGRO|L|47990|2",
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5",
+              "NEGRO|M|38990|8",
+              "NEGRO|M|45990|6",
+              "NEGRO|M|58990|2"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "budget-produces-no-results",
+      "tags": [
+        "no_results",
+        "price",
+        "color"
+      ],
+      "turns": [
+        {
+          "message": "Quiero zapatillas negras por menos de 80 mil",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "NO_RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|NEGRO",
+              "price|<|80000"
+            ],
+            "productNames": [],
+            "variantColors": [],
+            "variants": [],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "category-switch-replaces-all-filters",
+      "tags": [
+        "context_replace",
+        "category",
+        "color",
+        "size"
+      ],
+      "turns": [
+        {
+          "message": "Busco un buzo gris talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|44990|4"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor zapatillas azules talle 40",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|89990|3"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "reset-clears-search-context",
+      "tags": [
+        "reset",
+        "context_reset",
+        "context"
+      ],
+      "turns": [
+        {
+          "message": "Quiero remeras negras talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "reiniciar",
+          "operation": "RESET_CONTEXT",
+          "expected": {
+            "outcome": "CONTEXT_RESET",
+            "criteria": [],
+            "productNames": [],
+            "variantColors": [],
+            "variants": [],
+            "contextAction": "RESET_CONTEXT",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "zapatillas azules talle 40",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|89990|3"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "restore-first-search-reference",
+      "tags": [
+        "history_reference",
+        "context_restore"
+      ],
+      "turns": [
+        {
+          "message": "Quiero remeras blancas talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|M|22990|8"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor negras",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Volvamos a la primera búsqueda",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|M|22990|8"
+            ],
+            "contextAction": "RESTORE_SEARCH",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-01",
+      "tags": [
+        "colloquial",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Busco remeras negras talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor blancas.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|M|22990|8"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "¿Y talle L?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|L|23990|3",
+              "BLANCO|L|27990|2"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Hasta 24 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "price|<=|24000",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|L|23990|3"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-02",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "¿Tenés remeras de color blancas, en talle L?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|L|23990|3",
+              "BLANCO|L|27990|2"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "En realidad, prefiero negras.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|25990|4"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "¿Y talle M?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Hasta 25 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "price|<=|25000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-03",
+      "tags": [
+        "typo",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Busco remras azules talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|AZUL",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|M|23990|5",
+              "AZUL|M|26990|7"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Al final las quiero negras.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor en talle L.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|25990|4"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Hasta 26 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "price|<=|26000",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|25990|4"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-04",
+      "tags": [
+        "colloquial",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Ando buscando remeras negras en talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor azules.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|AZUL",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|M|23990|5",
+              "AZUL|M|26990|7"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor en talle M.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|AZUL",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|M|23990|5",
+              "AZUL|M|26990|7"
+            ],
+            "contextAction": "KEEP_FILTERS",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No más de 24 lucas.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|AZUL",
+              "price|<=|24000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|M|23990|5"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-05",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Me mostrás buzos color negras, talla M?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|45990|6"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "En realidad, prefiero grises.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|44990|4"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Que sean talle M, porfa.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|44990|4"
+            ],
+            "contextAction": "KEEP_FILTERS",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No más de 45 lucas.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|GRIS",
+              "price|<=|45000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|44990|4"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-06",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Busco buzos grises talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|44990|4"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Al final las quiero negras.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|45990|6"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Que sean talle L, porfa.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|NEGRO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|47990|2"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No más de 48 lucas.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|NEGRO",
+              "price|<=|48000",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|47990|2"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-07",
+      "tags": [
+        "colloquial",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "¿Tenés jeans de color azules, en talle 40?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|59990|7"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor azules.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|59990|7"
+            ],
+            "contextAction": "KEEP_FILTERS",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "¿Y talle 42?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "size|=|42"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|42|61990|4"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Con un tope de 62 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "price|<=|62000",
+              "size|=|42"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|42|61990|4"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-08",
+      "tags": [
+        "typo",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Busco jean negras talle 40",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|NEGRO",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|40|62990|3"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "En realidad, prefiero azules.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|59990|7"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "¿Y talle 42?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "size|=|42"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|42|61990|4"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Con un tope de 62 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "price|<=|62000",
+              "size|=|42"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|42|61990|4"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-09",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Ando buscando zapatillas negras en talle 39",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|NEGRO",
+              "size|=|39"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|39|87990|2"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Al final las quiero azules.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "NO_RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "size|=|39"
+            ],
+            "productNames": [],
+            "variantColors": [],
+            "variants": [],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor en talle 40.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|89990|3"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Con un tope de 90 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "price|<=|90000",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|89990|3"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-10",
+      "tags": [
+        "colloquial",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Me mostrás zapatillas color blancas, talla 39?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|BLANCO",
+              "size|=|39"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|39|84990|5"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor azules.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "NO_RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "size|=|39"
+            ],
+            "productNames": [],
+            "variantColors": [],
+            "variants": [],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor en talle 40.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|89990|3"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Hasta 85 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "NO_RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "price|<=|85000",
+              "size|=|40"
+            ],
+            "productNames": [],
+            "variantColors": [],
+            "variants": [],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-11",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Busco pantalones negras talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|38990|8"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "En realidad, prefiero grises.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|37990|6"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Que sean talle M, porfa.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|37990|6"
+            ],
+            "contextAction": "KEEP_FILTERS",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Hasta 38 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|GRIS",
+              "price|<=|38000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|37990|6"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-12",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "¿Tenés pantalones de color grises, en talle M?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|37990|6"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Al final las quiero negras.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|38990|8"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Que sean talle L, porfa.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|NEGRO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|39990|3"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Hasta 40 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|NEGRO",
+              "price|<=|40000",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|39990|3"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-13",
+      "tags": [
+        "colloquial",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Quiero vestidos azules para talle S, por favor",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|VESTIDOS",
+              "color|=|AZUL",
+              "size|=|S"
+            ],
+            "productNames": [
+              "Vestido camisero estampado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|S|56990|3"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor negras.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "NO_RESULTS",
+            "criteria": [
+              "category|=|VESTIDOS",
+              "color|=|NEGRO",
+              "size|=|S"
+            ],
+            "productNames": [],
+            "variantColors": [],
+            "variants": [],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "¿Y talle M?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|VESTIDOS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Vestido camisero estampado"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|58990|2"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No más de 59 lucas.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|VESTIDOS",
+              "color|=|NEGRO",
+              "price|<=|59000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Vestido camisero estampado"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|58990|2"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-14",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Ando buscando camisas azules en talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|CAMISAS",
+              "color|=|AZUL",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Camisa de lino clásica"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|M|46990|2"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "En realidad, prefiero blancas.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|CAMISAS",
+              "color|=|BLANCO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Camisa de lino clásica"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|M|45990|3"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "¿Y talle M?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|CAMISAS",
+              "color|=|BLANCO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Camisa de lino clásica"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|M|45990|3"
+            ],
+            "contextAction": "KEEP_FILTERS",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No más de 46 lucas.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|CAMISAS",
+              "color|=|BLANCO",
+              "price|<=|46000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Camisa de lino clásica"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|M|45990|3"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-15",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Me mostrás pantalones color negras, talla L?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|NEGRO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|39990|3"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Al final las quiero grises.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "NO_RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|GRIS",
+              "size|=|L"
+            ],
+            "productNames": [],
+            "variantColors": [],
+            "variants": [],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor en talle M.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|37990|6"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No más de 38 lucas.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|GRIS",
+              "price|<=|38000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|37990|6"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-16",
+      "tags": [
+        "colloquial",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Busco remeras negras talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor blancas.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|M|22990|8"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor en talle L.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|L|23990|3",
+              "BLANCO|L|27990|2"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Con un tope de 24 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "price|<=|24000",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|L|23990|3"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-17",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "¿Tenés remeras de color blancas, en talle L?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|L|23990|3",
+              "BLANCO|L|27990|2"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "En realidad, prefiero negras.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|25990|4"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Que sean talle M, porfa.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Con un tope de 25 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "price|<=|25000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-18",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Quiero remeras azules para talle M, por favor",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|AZUL",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|M|23990|5",
+              "AZUL|M|26990|7"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Al final las quiero negras.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Que sean talle L, porfa.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|25990|4"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Con un tope de 26 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "price|<=|26000",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|25990|4"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-19",
+      "tags": [
+        "typo",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Busco remras negras talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor azules.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|AZUL",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|M|23990|5",
+              "AZUL|M|26990|7"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "¿Y talle M?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|AZUL",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|M|23990|5",
+              "AZUL|M|26990|7"
+            ],
+            "contextAction": "KEEP_FILTERS",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Hasta 24 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|AZUL",
+              "price|<=|24000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|M|23990|5"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-20",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Me mostrás buzos color negras, talla M?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|45990|6"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "En realidad, prefiero grises.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|44990|4"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "¿Y talle M?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|44990|4"
+            ],
+            "contextAction": "KEEP_FILTERS",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Hasta 45 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|GRIS",
+              "price|<=|45000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|44990|4"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-21",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Busco buzos grises talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|44990|4"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Al final las quiero negras.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|45990|6"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor en talle L.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|NEGRO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|47990|2"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Hasta 48 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|NEGRO",
+              "price|<=|48000",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|47990|2"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-22",
+      "tags": [
+        "colloquial",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "¿Tenés jeans de color azules, en talle 40?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|59990|7"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor azules.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|59990|7"
+            ],
+            "contextAction": "KEEP_FILTERS",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor en talle 42.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "size|=|42"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|42|61990|4"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No más de 62 lucas.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "price|<=|62000",
+              "size|=|42"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|42|61990|4"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-23",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Quiero jeans negras para talle 40, por favor",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|NEGRO",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|40|62990|3"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "En realidad, prefiero azules.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|59990|7"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Que sean talle 42, porfa.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "size|=|42"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|42|61990|4"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No más de 62 lucas.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "price|<=|62000",
+              "size|=|42"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|42|61990|4"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-24",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Ando buscando zapatillas negras en talle 39",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|NEGRO",
+              "size|=|39"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|39|87990|2"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Al final las quiero azules.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "NO_RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "size|=|39"
+            ],
+            "productNames": [],
+            "variantColors": [],
+            "variants": [],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Que sean talle 40, porfa.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|89990|3"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No más de 90 lucas.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "price|<=|90000",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|89990|3"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-25",
+      "tags": [
+        "colloquial",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Me mostrás zapatillas color blancas, talla 39?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|BLANCO",
+              "size|=|39"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|39|84990|5"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor azules.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "NO_RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "size|=|39"
+            ],
+            "productNames": [],
+            "variantColors": [],
+            "variants": [],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "¿Y talle 40?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|89990|3"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Con un tope de 85 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "NO_RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "price|<=|85000",
+              "size|=|40"
+            ],
+            "productNames": [],
+            "variantColors": [],
+            "variants": [],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-26",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Busco pantalones negras talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|38990|8"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "En realidad, prefiero grises.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|37990|6"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "¿Y talle M?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|37990|6"
+            ],
+            "contextAction": "KEEP_FILTERS",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Con un tope de 38 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|GRIS",
+              "price|<=|38000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|37990|6"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-27",
+      "tags": [
+        "typo",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Busco pantalon grises talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|37990|6"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Al final las quiero negras.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|38990|8"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor en talle L.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|NEGRO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|39990|3"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Con un tope de 40 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|NEGRO",
+              "price|<=|40000",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|39990|3"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-28",
+      "tags": [
+        "colloquial",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Quiero vestidos azules para talle S, por favor",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|VESTIDOS",
+              "color|=|AZUL",
+              "size|=|S"
+            ],
+            "productNames": [
+              "Vestido camisero estampado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|S|56990|3"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor negras.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "NO_RESULTS",
+            "criteria": [
+              "category|=|VESTIDOS",
+              "color|=|NEGRO",
+              "size|=|S"
+            ],
+            "productNames": [],
+            "variantColors": [],
+            "variants": [],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor en talle M.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|VESTIDOS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Vestido camisero estampado"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|58990|2"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Hasta 59 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|VESTIDOS",
+              "color|=|NEGRO",
+              "price|<=|59000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Vestido camisero estampado"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|58990|2"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-29",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Ando buscando camisas azules en talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|CAMISAS",
+              "color|=|AZUL",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Camisa de lino clásica"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|M|46990|2"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "En realidad, prefiero blancas.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|CAMISAS",
+              "color|=|BLANCO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Camisa de lino clásica"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|M|45990|3"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Que sean talle M, porfa.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|CAMISAS",
+              "color|=|BLANCO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Camisa de lino clásica"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|M|45990|3"
+            ],
+            "contextAction": "KEEP_FILTERS",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Hasta 46 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|CAMISAS",
+              "color|=|BLANCO",
+              "price|<=|46000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Camisa de lino clásica"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|M|45990|3"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-30",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Me mostrás pantalones color negras, talla L?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|NEGRO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|39990|3"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Al final las quiero grises.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "NO_RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|GRIS",
+              "size|=|L"
+            ],
+            "productNames": [],
+            "variantColors": [],
+            "variants": [],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Que sean talle M, porfa.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|37990|6"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Hasta 38 mil.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|GRIS",
+              "price|<=|38000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|37990|6"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-31",
+      "tags": [
+        "colloquial",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Busco remeras negras talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mejor blancas.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|M|22990|8"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "¿Y talle L?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|L|23990|3",
+              "BLANCO|L|27990|2"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No más de 24 lucas.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "price|<=|24000",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|L|23990|3"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "dev-context-flow-32",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "¿Tenés remeras de color blancas, en talle L?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|L|23990|3",
+              "BLANCO|L|27990|2"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "En realidad, prefiero negras.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|25990|4"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "¿Y talle M?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No más de 25 lucas.",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "price|<=|25000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "holdout-conversation-01",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Buenas, ando buscando remeras color negras, talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No, mejor en blancas",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|M|22990|8"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Buscaba talle L",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|L|23990|3",
+              "BLANCO|L|27990|2"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mi presupuesto llega a 24 mil",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|BLANCO",
+              "price|<=|24000",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|L|23990|3"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "holdout-conversation-02",
+      "tags": [
+        "typo",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Busco remras azules para talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|AZUL",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|M|23990|5",
+              "AZUL|M|26990|7"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No, mejor en negras",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Remera básica de algodón",
+              "Remera deportiva dry fit"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|24990|12",
+              "NEGRO|M|27990|5"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Buscaba talle L",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|25990|4"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mi presupuesto llega a 26 mil",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|REMERAS",
+              "color|=|NEGRO",
+              "price|<=|26000",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Remera básica de algodón"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|25990|4"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "holdout-conversation-03",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Necesito buzos negras; mi talle es M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|45990|6"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No, mejor en grises",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|44990|4"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Buscaba talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|44990|4"
+            ],
+            "contextAction": "KEEP_FILTERS",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mi presupuesto llega a 45 mil",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|GRIS",
+              "price|<=|45000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|44990|4"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "holdout-conversation-04",
+      "tags": [
+        "colloquial",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Hay buzos en grises y talle M?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|44990|4"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No, mejor en negras",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|45990|6"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Buscaba talle L",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|NEGRO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|47990|2"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mi presupuesto llega a 48 mil",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|NEGRO",
+              "price|<=|48000",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|47990|2"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "holdout-conversation-05",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Me interesa algo de jeans, azules, en 40",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|59990|7"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No, mejor en azules",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|59990|7"
+            ],
+            "contextAction": "KEEP_FILTERS",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Buscaba talle 42",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "size|=|42"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|42|61990|4"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mi presupuesto llega a 62 mil",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "price|<=|62000",
+              "size|=|42"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|42|61990|4"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "holdout-conversation-06",
+      "tags": [
+        "typo",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Busco jean negras para talle 40",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|NEGRO",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|40|62990|3"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No, mejor en azules",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|59990|7"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Buscaba talle 42",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "size|=|42"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|42|61990|4"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mi presupuesto llega a 62 mil",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "price|<=|62000",
+              "size|=|42"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|42|61990|4"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "holdout-conversation-07",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Tendrás zapatillas negras para usar en talle 39?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|NEGRO",
+              "size|=|39"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|39|87990|2"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No, mejor en azules",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "NO_RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "size|=|39"
+            ],
+            "productNames": [],
+            "variantColors": [],
+            "variants": [],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Buscaba talle 40",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|89990|3"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mi presupuesto llega a 90 mil",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "price|<=|90000",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|89990|3"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "holdout-conversation-08",
+      "tags": [
+        "colloquial",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Necesito zapatillas blancas; mi talle es 39",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|BLANCO",
+              "size|=|39"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|39|84990|5"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No, mejor en azules",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "NO_RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "size|=|39"
+            ],
+            "productNames": [],
+            "variantColors": [],
+            "variants": [],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Buscaba talle 40",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|89990|3"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mi presupuesto llega a 85 mil",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "NO_RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "price|<=|85000",
+              "size|=|40"
+            ],
+            "productNames": [],
+            "variantColors": [],
+            "variants": [],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "holdout-conversation-09",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Hay pantalones en negras y talle M?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|38990|8"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No, mejor en grises",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|37990|6"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Buscaba talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|37990|6"
+            ],
+            "contextAction": "KEEP_FILTERS",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mi presupuesto llega a 38 mil",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|GRIS",
+              "price|<=|38000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|37990|6"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "holdout-conversation-10",
+      "tags": [
+        "typo",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Busco pantalon grises para talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|37990|6"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No, mejor en negras",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|38990|8"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Buscaba talle L",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|NEGRO",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|39990|3"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mi presupuesto llega a 40 mil",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|PANTALONES",
+              "color|=|NEGRO",
+              "price|<=|40000",
+              "size|=|L"
+            ],
+            "productNames": [
+              "Pantalón jogger deportivo"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|L|39990|3"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "holdout-conversation-11",
+      "tags": [
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Buenas, ando buscando vestidos color azules, talle S",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|VESTIDOS",
+              "color|=|AZUL",
+              "size|=|S"
+            ],
+            "productNames": [
+              "Vestido camisero estampado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|S|56990|3"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No, mejor en negras",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "NO_RESULTS",
+            "criteria": [
+              "category|=|VESTIDOS",
+              "color|=|NEGRO",
+              "size|=|S"
+            ],
+            "productNames": [],
+            "variantColors": [],
+            "variants": [],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Buscaba talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|VESTIDOS",
+              "color|=|NEGRO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Vestido camisero estampado"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|58990|2"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mi presupuesto llega a 59 mil",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|VESTIDOS",
+              "color|=|NEGRO",
+              "price|<=|59000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Vestido camisero estampado"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|M|58990|2"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "holdout-conversation-12",
+      "tags": [
+        "colloquial",
+        "context",
+        "multi_turn"
+      ],
+      "turns": [
+        {
+          "message": "Tendrás camisas azules para usar en talle M?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|CAMISAS",
+              "color|=|AZUL",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Camisa de lino clásica"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|M|46990|2"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No, mejor en blancas",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|CAMISAS",
+              "color|=|BLANCO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Camisa de lino clásica"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|M|45990|3"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Buscaba talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|CAMISAS",
+              "color|=|BLANCO",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Camisa de lino clásica"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|M|45990|3"
+            ],
+            "contextAction": "KEEP_FILTERS",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "Mi presupuesto llega a 46 mil",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|CAMISAS",
+              "color|=|BLANCO",
+              "price|<=|46000",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Camisa de lino clásica"
+            ],
+            "variantColors": [
+              "BLANCO"
+            ],
+            "variants": [
+              "BLANCO|M|45990|3"
+            ],
+            "contextAction": "ADD_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "holdout-ambiguous-gift-clarification",
+      "tags": [
+        "holdout",
+        "ambiguity",
+        "clarification",
+        "recovery"
+      ],
+      "turns": [
+        {
+          "message": "¿Qué me recomendás para hacer un regalo?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "NEEDS_CLARIFICATION",
+            "criteria": [],
+            "productNames": [],
+            "variantColors": [],
+            "variants": [],
+            "contextAction": "ASK_CLARIFICATION",
+            "clarificationExpected": true,
+            "clarificationReason": "product_and_filter_unspecified"
+          }
+        },
+        {
+          "message": "Un buzo gris, talle M",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|BUZOS",
+              "color|=|GRIS",
+              "size|=|M"
+            ],
+            "productNames": [
+              "Buzo canguro de frisa"
+            ],
+            "variantColors": [
+              "GRIS"
+            ],
+            "variants": [
+              "GRIS|M|44990|4"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "holdout-typo-and-correction",
+      "tags": [
+        "holdout",
+        "typo",
+        "correction",
+        "color",
+        "size"
+      ],
+      "turns": [
+        {
+          "message": "Busco zapatilas negras para el 39",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|NEGRO",
+              "size|=|39"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "NEGRO"
+            ],
+            "variants": [
+              "NEGRO|39|87990|2"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        },
+        {
+          "message": "No, quise decir azules talle 40",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|ZAPATILLAS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Zapatilla urbana running"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|89990|3"
+            ],
+            "contextAction": "REPLACE_FILTER",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "holdout-english-catalog-query",
+      "tags": [
+        "holdout",
+        "multilingual",
+        "color",
+        "size"
+      ],
+      "turns": [
+        {
+          "message": "Do you have blue jeans in size 40?",
+          "operation": "MESSAGE",
+          "expected": {
+            "outcome": "RESULTS",
+            "criteria": [
+              "category|=|JEANS",
+              "color|=|AZUL",
+              "size|=|40"
+            ],
+            "productNames": [
+              "Jean slim elastizado"
+            ],
+            "variantColors": [
+              "AZUL"
+            ],
+            "variants": [
+              "AZUL|40|59990|7"
+            ],
+            "contextAction": "START_SEARCH",
+            "clarificationExpected": false
+          }
+        }
+      ]
+    }
+  ]
+}

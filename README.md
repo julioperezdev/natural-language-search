@@ -39,6 +39,7 @@ cd nls
 - `products/domain/search`: contrato de Criteria, schema y resultados.
 - `products/application`: coordinación de búsqueda y frontera del motor de interpretación.
 - `conversation`: resolución persistente de identidad del canal, historial reciente e idempotencia de mensajes.
+- `evaluation`: corpus versionado, evaluaciones de conversación por turnos y reportes persistentes para iterar con evidencia.
 - `conversation/infrastructure/whatsapp`: webhook Meta firmado y emisor de respuestas de WhatsApp Cloud API.
 - `productsearchresponses`: humanización independiente de resultados estructurados.
 - `productsearch`: coordinación de interpretación, búsqueda y respuesta para el cliente.
@@ -49,6 +50,8 @@ cd nls
 El backend mantiene un único motor de búsqueda con JPA Criteria. Los campos y operadores se validan desde un registro controlado por el servidor; joins de variantes se comparten por query y los resultados/conteos usan distinct cuando corresponda. `/api/products/search/answer` coordina búsqueda y respuesta; `/api/product-search-responses/humanize` permite probar la humanización de forma aislada; `/api/conversations/messages` agrega estado persistente de búsqueda por identidad del canal y conserva hasta 20 mensajes recientes.
 
 El procedimiento completo para preparar un bot nuevo de WhatsApp, validar cada paso y diagnosticar fallos está en [`nls/WHATSAPP_SETUP.md`](nls/WHATSAPP_SETUP.md). Incluye el registro del número, la suscripción de la app a la WABA, la configuración del callback, Secrets Manager, IntelliJ, ngrok y una prueba de punta a punta.
+
+La configuración, los escenarios iniciales y el uso seguro de los reportes de evaluación están en [`nls/EVALUATIONS.md`](nls/EVALUATIONS.md).
 
 ## Documentación de referencia
 

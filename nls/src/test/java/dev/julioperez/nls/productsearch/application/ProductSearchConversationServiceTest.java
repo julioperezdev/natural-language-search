@@ -2,6 +2,7 @@ package dev.julioperez.nls.productsearch.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -36,6 +37,8 @@ class ProductSearchConversationServiceTest {
         when(decisionEngine.interpretTurn("Tenes remeras?", schema, current, SearchConversationContext.empty()))
                 .thenThrow(new SearchInterpretationFailedException(
                         SearchInterpretationFailedException.Reason.LOW_CONFIDENCE, "color"));
+        doCallRealMethod().when(decisionEngine).interpretTurnWithTelemetry(
+                "Tenes remeras?", schema, current, SearchConversationContext.empty());
 
         ProductSearchConversationService service = new ProductSearchConversationService(
                 new ProductSearchService(repository, Optional.of(decisionEngine)), humanizer);

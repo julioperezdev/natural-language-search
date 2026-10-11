@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ConversationJpaRepository extends JpaRepository<ConversationJpaEntity, UUID> {
+    long countByChannel(String channel);
+
     @Modifying(flushAutomatically = true)
     @Query(value = """
             INSERT INTO search_conversations
@@ -35,4 +37,11 @@ public interface ConversationJpaRepository extends JpaRepository<ConversationJpa
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select conversation from ConversationJpaEntity conversation where conversation.id = :id")
     Optional<ConversationJpaEntity> findForUpdateById(@Param("id") UUID id);
+
+    @Modifying(flushAutomatically = true)
+    @Query("delete from ConversationJpaEntity conversation "
+            + "where conversation.channel = :channel and conversation.identityDigest = :identityDigest")
+    int deleteByIdentity(
+            @Param("channel") String channel,
+            @Param("identityDigest") String identityDigest);
 }

@@ -27,7 +27,8 @@ final class ConversationalSearchCriteriaRefiner {
             "(?iu)(no\\s+menos\\s+de|no\\s+mas\\s+de|no\\s+más\\s+de|como\\s+maximo|como\\s+máximo|"
                     + "como\\s+minimo|como\\s+mínimo|por\\s+debajo\\s+de|por\\s+encima\\s+de|al\\s+menos|"
                     + "menos\\s+de|inferior\\s+a|menor\\s+que|hasta|mas\\s+de|más\\s+de|superior\\s+a|"
-                    + "mayor\\s+que|desde)\\s*\\$?\\s*(\\d[\\d.,]*)\\s*(mil|k|lucas?|pesos?)?");
+                    + "mayor\\s+que|desde|con\\s+(?:un\\s+)?tope(?:\\s+de)?|tope(?:\\s+de)?)"
+                    + "\\s*\\$?\\s*(\\d[\\d.,]*)\\s*(mil|k|lucas?|pesos?)?");
     private static final Pattern BUDGET = Pattern.compile(
             "(?iu)\\b(?:(?:solo|solamente)\\s+)?(?:tengo|cuento\\s+con|dispongo\\s+de|"
                     + "mi\\s+presupuesto\\s+(?:es(?:\\s+de)?|de)|presupuesto(?:\\s+de)?)"
@@ -38,7 +39,7 @@ final class ConversationalSearchCriteriaRefiner {
             "me", "mejor", "mi", "mil", "necesito", "para", "por", "producto", "productos", "quiero",
             "quisiera", "remera", "remeras", "tambien", "tenes", "tengo", "tenia", "tenias", "tenian",
             "tienes", "una", "un", "unas", "unos", "y", "presupuesto", "cuento", "dispongo", "k", "luca",
-            "lucas", "pesos");
+            "lucas", "pesos", "que", "sean", "talle", "talla", "porfa");
 
     private ConversationalSearchCriteriaRefiner() {
     }
@@ -88,6 +89,12 @@ final class ConversationalSearchCriteriaRefiner {
 
         String normalized = normalize(message);
         boolean[] consumed = new boolean[normalized.length()];
+        boolean hasDeterministicPrice = deterministicFilters.stream()
+                .anyMatch(filter -> filter.field().equals("price"));
+        if (hasDeterministicPrice) {
+            consumeMatches(consumed, PRICE, normalized);
+            consumeMatches(consumed, BUDGET, normalized);
+        }
         Map<String, Set<String>> enumChoices = new LinkedHashMap<>();
         for (SearchFieldSchema field : schema.fields()) {
             if (field.type() != SearchFieldType.ENUM || !field.filterable()
@@ -99,6 +106,9 @@ final class ConversationalSearchCriteriaRefiner {
                 for (String alias : aliases(field, value)) {
                     Matcher matcher = phrase(alias).matcher(normalized);
                     while (matcher.find()) {
+                        if (overlapsConsumed(consumed, matcher.start(), matcher.end())) {
+                            continue;
+                        }
                         values.add(value);
                         consume(consumed, matcher.start(), matcher.end());
                     }
@@ -213,6 +223,15 @@ final class ConversationalSearchCriteriaRefiner {
         Arrays.fill(consumed, start, end, true);
     }
 
+    private static boolean overlapsConsumed(boolean[] consumed, int start, int end) {
+        for (int index = start; index < end; index++) {
+            if (consumed[index]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static String normalize(String value) {
         return Normalizer.normalize(value.toLowerCase(Locale.ROOT), Normalizer.Form.NFD)
                 .replaceAll("\\p{M}+", "");
@@ -224,7 +243,8 @@ final class ConversationalSearchCriteriaRefiner {
                 || normalized.contains("minimo")) {
             return FilterOperator.GREATER_THAN_OR_EQUAL;
         }
-        if (normalized.equals("hasta") || normalized.contains("maximo") || normalized.contains("no mas de")) {
+        if (normalized.equals("hasta") || normalized.contains("maximo") || normalized.contains("no mas de")
+                || normalized.contains("tope")) {
             return FilterOperator.LESS_THAN_OR_EQUAL;
         }
         if (normalized.contains("menos de") || normalized.contains("debajo") || normalized.contains("inferior")

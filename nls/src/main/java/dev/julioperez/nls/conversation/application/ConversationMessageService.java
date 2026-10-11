@@ -85,7 +85,7 @@ public class ConversationMessageService {
         int retainedAfterReply = Math.min(MAX_CONTEXT_MESSAGES, retainedAfterInbound + 1);
         ConversationMessageResult result = new ConversationMessageResult(
                 conversation.id(), ConversationMessageOutcome.from(answer.outcome()), answer.reply(),
-                answer.results(), nextCriteria,
+                answer.results(), nextCriteria, answer.interpretationTelemetry(),
                 retainedAfterReply, MAX_CONTEXT_MESSAGES);
         String responseJson = stateCodec.encodeResult(result);
         conversations.recordProcessedMessage(
@@ -137,7 +137,7 @@ public class ConversationMessageService {
         ConversationMessageResult result = new ConversationMessageResult(
                 conversation.id(), ConversationMessageOutcome.CONTEXT_RESET,
                 "Listo, reinicié el contexto de búsqueda. ¿Qué producto estás buscando?",
-                null, clearedCriteria, retainedAfterReply, MAX_CONTEXT_MESSAGES);
+                null, clearedCriteria, null, retainedAfterReply, MAX_CONTEXT_MESSAGES);
         conversations.recordProcessedMessage(conversation.id(), command.providerMessageId(),
                 stateCodec.encodeResult(result), now);
         conversations.append(new ConversationMessage(

@@ -13,6 +13,7 @@ import dev.julioperez.nls.conversation.application.ConversationMessageService;
 import dev.julioperez.nls.conversation.domain.ConversationChannel;
 import dev.julioperez.nls.conversation.domain.ConversationIdentity;
 import dev.julioperez.nls.conversation.domain.ConversationRepository;
+import dev.julioperez.nls.conversation.infrastructure.repository.postgres.ConversationJpaRepository;
 import dev.julioperez.nls.products.application.SearchConversationContext;
 import dev.julioperez.nls.products.application.SearchDecisionEngine;
 import dev.julioperez.nls.products.domain.search.Criteria;
@@ -39,6 +40,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -48,10 +50,13 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
         "springdoc.swagger-ui.enabled=true",
         "nls.database.secret-id=",
         "nls.conversation.identity-hmac-key=integration-test-identity-hmac-key-0123456789abcdef",
+        "nls.build.revision=test-build",
+        "nls.evaluation.enabled=true",
         "NLS_DB_SCHEMA=public"
 })
 @AutoConfigureMockMvc
 @Testcontainers
+@ActiveProfiles("test")
 @Import(ProductSearchIntegrationTest.TestDecisionEngineConfiguration.class)
 class ProductSearchIntegrationTest {
     @Container
@@ -72,6 +77,9 @@ class ProductSearchIntegrationTest {
 
     @Autowired
     ConversationRepository conversations;
+
+    @Autowired
+    ConversationJpaRepository conversationEntities;
 
     @Autowired
     SearchContextRecorder searchContextRecorder;
@@ -329,6 +337,80 @@ class ProductSearchIntegrationTest {
                 .contains("black medium", "under 30");
     }
 
+    @Test
+    void runsAndPersistsTheVersionedEndToEndEvaluationCorpus() throws Exception {
+        CategoryJpaEntity category = category("REMERAS");
+        ProductJpaEntity basic = product("Remera básica de algodón", category);
+        variant(basic, "BLANCO", "M", "22990", 8);
+        variant(basic, "BLANCO", "L", "23990", 3);
+        variant(basic, "NEGRO", "M", "24990", 12);
+        variant(basic, "NEGRO", "L", "25990", 4);
+        variant(basic, "AZUL", "M", "23990", 5);
+        ProductJpaEntity sport = product("Remera deportiva dry fit", category);
+        variant(sport, "NEGRO", "M", "27990", 5);
+        variant(sport, "AZUL", "M", "26990", 7);
+        variant(sport, "BLANCO", "L", "27990", 2);
+
+        String response = mvc.perform(post("/api/evaluations/runs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"suiteId\":\"catalog-conversation\"}"))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.status").value("QUEUED"))
+                .andReturn().getResponse().getContentAsString();
+        var mapper = tools.jackson.databind.json.JsonMapper.builder().build();
+        String runId = mapper.readTree(response).path("id").stringValue();
+
+        org.springframework.test.web.servlet.MvcResult completed = null;
+        long deadline = System.nanoTime() + java.time.Duration.ofSeconds(10).toNanos();
+        while (System.nanoTime() < deadline) {
+            org.springframework.test.web.servlet.MvcResult current = mvc.perform(get("/api/evaluations/runs/{id}", runId))
+                    .andExpect(status().isOk()).andReturn();
+            String runStatus = mapper.readTree(current.getResponse().getContentAsString())
+                    .path("status").stringValue();
+            if ("COMPLETED".equals(runStatus) || "FAILED".equals(runStatus)) {
+                completed = current;
+                break;
+            }
+            Thread.sleep(25);
+        }
+        assertThat(completed).isNotNull();
+        mvc.perform(get("/api/evaluations/runs/{id}", runId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.suiteId").value("catalog-conversation"))
+                .andExpect(jsonPath("$.corpusVersion").value("1.1.1"))
+                .andExpect(jsonPath("$.catalogVersion").value("catalog-1.1.0"))
+                .andExpect(jsonPath("$.corpusSha256").value(org.hamcrest.Matchers.matchesPattern("[a-f0-9]{64}")))
+                .andExpect(jsonPath("$.catalogSha256").value(org.hamcrest.Matchers.matchesPattern("[a-f0-9]{64}")))
+                .andExpect(jsonPath("$.applicationRevision").value("test-build"))
+                .andExpect(jsonPath("$.caseCount").value(2))
+                .andExpect(jsonPath("$.passedCaseCount").value(2))
+                .andExpect(jsonPath("$.failedCaseCount").value(0))
+                .andExpect(jsonPath("$.report.metrics.providerCalls").value(0))
+                .andExpect(jsonPath("$.report.metrics.turnCount").value(6))
+                .andExpect(jsonPath("$.report.metrics.passedTurnCount").value(6))
+                .andExpect(jsonPath("$.report.metrics.criteriaExactMatchRate").value(1.0))
+                .andExpect(jsonPath("$.report.cases[0].turns[0].actual.products[0].variants[0].id").exists())
+                .andExpect(jsonPath("$.report.cases[0].turns[3].actual.criteria").isArray());
+        mvc.perform(get("/api/evaluations/runs").param("page", "0").param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(runId))
+                .andExpect(jsonPath("$.items[0].passedCaseCount").value(2));
+        assertThat(conversationEntities.countByChannel("API")).isZero();
+    }
+
+    @Test
+    void exposesVersionedEvaluationSuitesAndTheirCaseCounts() throws Exception {
+        mvc.perform(get("/api/evaluations/suites"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.corpusVersion").value("1.1.1"))
+                .andExpect(jsonPath("$.catalogVersion").value("catalog-1.1.0"))
+                .andExpect(jsonPath("$.suites[?(@.id == 'catalog-conversation-pilot')].caseCount").value(12))
+                .andExpect(jsonPath("$.suites[?(@.id == 'catalog-conversation-development')].caseCount").value(45))
+                .andExpect(jsonPath("$.suites[?(@.id == 'catalog-conversation-holdout')].caseCount").value(15));
+    }
+
     private CategoryJpaEntity category(String name) {
         return categories.saveAndFlush(new CategoryJpaEntity(name));
     }
@@ -379,6 +461,33 @@ class ProductSearchIntegrationTest {
             return new SearchDecisionEngine() {
                 @Override
                 public Criteria interpret(String message, dev.julioperez.nls.products.domain.search.SearchSchema schema) {
+                    if ("Hola, ¿tenés remeras?".equals(message)) {
+                        return new Criteria(List.of(
+                                new Filter("category", FilterOperator.EQUALS, "REMERAS")), null, 10, 0);
+                    }
+                    if ("Negras, por favor".equals(message)) {
+                        return new Criteria(List.of(
+                                new Filter("color", FilterOperator.EQUALS, "NEGRO")), null, 10, 0);
+                    }
+                    if ("Y hasta 26 mil".equals(message)) {
+                        return new Criteria(List.of(
+                                new Filter("price", FilterOperator.LESS_THAN_OR_EQUAL, new BigDecimal("26000"))),
+                                null, 10, 0);
+                    }
+                    if ("Mejor blancas".equals(message)) {
+                        return new Criteria(List.of(
+                                new Filter("color", FilterOperator.EQUALS, "BLANCO")), null, 10, 0);
+                    }
+                    if ("Quiero remeras blancas talle M".equals(message)) {
+                        return new Criteria(List.of(
+                                new Filter("category", FilterOperator.EQUALS, "REMERAS"),
+                                new Filter("color", FilterOperator.EQUALS, "BLANCO"),
+                                new Filter("size", FilterOperator.EQUALS, "M")), null, 10, 0);
+                    }
+                    if ("Mejor negras".equals(message)) {
+                        return new Criteria(List.of(
+                                new Filter("color", FilterOperator.EQUALS, "NEGRO")), null, 10, 0);
+                    }
                     if ("black medium".equals(message)) {
                         return new Criteria(List.of(
                                 new Filter("color", FilterOperator.EQUALS, "BLACK"),

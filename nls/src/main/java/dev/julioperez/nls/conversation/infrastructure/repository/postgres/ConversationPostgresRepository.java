@@ -122,4 +122,10 @@ public class ConversationPostgresRepository implements ConversationRepository {
         messages.deleteByConversationIdAndSequenceLessThanAndDirection(
                 conversationId, firstRetainedSequence, ConversationMessageDirection.INBOUND);
     }
+
+    @Override
+    @Transactional
+    public void deleteByIdentity(ConversationIdentity identity) {
+        conversations.deleteByIdentity(identity.channel().name(), identityHasher.hash(identity));
+    }
 }

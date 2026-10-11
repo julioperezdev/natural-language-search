@@ -3,3 +3,7 @@ databaseChangeLog:
       file: db/changelog/changes/001-create-product-catalog.yaml
   - include:
       file: db/changelog/changes/002-create-conversations.yaml
+  - include:
+      file: db/changelog/changes/003-create-evaluation-runs.yaml
+  - include:
+      file: db/changelog/changes/004-add-evaluation-fingerprints.yaml

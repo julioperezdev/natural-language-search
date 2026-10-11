@@ -30,4 +30,6 @@ public interface ConversationRepository {
     void updateSearchState(UUID conversationId, String stateJson, long nextMessageSequence, Instant updatedAt);
 
     void retainLatestMessages(UUID conversationId, long nextMessageSequence, int maximumMessages);
+
+    void deleteByIdentity(ConversationIdentity identity);
 }

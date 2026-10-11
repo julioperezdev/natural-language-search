@@ -45,6 +45,14 @@ public class ProductSearchService {
         return repository.validate(interpreted);
     }
 
+    public SearchInterpretationResult interpretWithTelemetry(
+            String message, Criteria current, SearchConversationContext context) {
+        SearchDecisionEngine engine = decisionEngine.orElseThrow(SearchInterpretationUnavailableException::new);
+        SearchInterpretationResult interpreted = engine.interpretTurnWithTelemetry(
+                message, repository.schema(), current, context);
+        return new SearchInterpretationResult(repository.validate(interpreted.criteria()), interpreted.telemetry());
+    }
+
     public SearchSchema schema() {
         return repository.schema();
     }

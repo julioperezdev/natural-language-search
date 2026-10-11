@@ -52,7 +52,9 @@ class TypeSafeSearchDecisionEngineTest {
                 .andExpect(jsonPath("$.questions.size.criteria.M").exists())
                 .andRespond(withSuccess(response(), MediaType.APPLICATION_JSON));
 
-        var criteria = engine.interpret(MESSAGE, schema());
+        var result = engine.interpretTurnWithTelemetry(
+                MESSAGE, schema(), new Criteria(List.of(), null, 10, 0), SearchConversationContext.empty());
+        var criteria = result.criteria();
 
         assertThat(criteria.filters())
                 .extracting("field")
@@ -60,6 +62,64 @@ class TypeSafeSearchDecisionEngineTest {
         assertThat(criteria.filters().getFirst().operator()).isEqualTo(FilterOperator.LESS_THAN_OR_EQUAL);
         assertThat(criteria.filters().getFirst().value()).isEqualTo(new BigDecimal("50000"));
         assertThat(criteria.limit()).isEqualTo(10);
+        assertThat(result.telemetry().method()).isEqualTo("typesafe");
+        assertThat(result.telemetry().providerModel()).isEqualTo("jev-1.13.0");
+        assertThat(result.telemetry().providerCalled()).isTrue();
+        assertThat(result.telemetry().inputTokens()).isEqualTo(234);
+        assertThat(result.telemetry().outputTokens()).isEqualTo(18);
+        server.verify();
+    }
+
+    @Test
+    void treatsColloquialOpenEndedStoreDiscoveryAsAnUnfilteredCatalogBrowse() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        TypeSafeSearchDecisionEngine engine = new TypeSafeSearchDecisionEngine(
+                builder.build(), properties(), () -> "synthetic-typesafe-key");
+        String message = "¿Qué vendes? Estoy viendo opciones";
+
+        server.expect(requestTo("https://api.typesafe.ai/v1/systemone"))
+                .andExpect(jsonPath("$.state").value(message))
+                .andExpect(jsonPath("$.questions.searchIntent.instructions")
+                        .value(org.hamcrest.Matchers.containsString("'¿Qué vendes?'")))
+                .andExpect(jsonPath("$.questions.searchIntent.instructions")
+                        .value(org.hamcrest.Matchers.containsString("¿Qué productos ofrecen?")))
+                .andRespond(withSuccess(browseCatalogResponse(), MediaType.APPLICATION_JSON));
+
+        TypeSafeInterpretationEvaluation evaluation = engine.interpretForEvaluation(
+                message, schemaWithoutProductName(), new Criteria(List.of(), null, 10, 0),
+                SearchConversationContext.empty());
+        assertThat(evaluation.failureReason())
+                .as("rejection field: %s", evaluation.failureField())
+                .isNull();
+        Criteria criteria = evaluation.criteria();
+
+        assertThat(criteria.filters()).isEmpty();
+        assertThat(criteria.limit()).isEqualTo(10);
+        assertThat(criteria.offset()).isZero();
+        server.verify();
+    }
+
+    @Test
+    void keepsGenericGiftRequestsOnTheClarificationPathInsteadOfBrowsingEverything() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        TypeSafeSearchDecisionEngine engine = new TypeSafeSearchDecisionEngine(
+                builder.build(), properties(), () -> "synthetic-typesafe-key");
+        String message = "Busco algo copado para regalar";
+
+        server.expect(requestTo("https://api.typesafe.ai/v1/systemone"))
+                .andExpect(jsonPath("$.questions.searchIntent.instructions")
+                        .value(org.hamcrest.Matchers.containsString("not a catalog-browse request")))
+                .andRespond(withSuccess(noFilterSearchResponse(), MediaType.APPLICATION_JSON));
+
+        TypeSafeInterpretationEvaluation evaluation = engine.interpretForEvaluation(
+                message, schemaWithoutProductName(), new Criteria(List.of(), null, 10, 0),
+                SearchConversationContext.empty());
+
+        assertThat(evaluation.criteria()).isNull();
+        assertThat(evaluation.failureReason())
+                .isEqualTo(SearchInterpretationFailedException.Reason.NO_SEARCH_FILTERS);
         server.verify();
     }
 
@@ -239,6 +299,7 @@ class TypeSafeSearchDecisionEngineTest {
 
         Criteria explicitBudget = engine.interpretTurn("Y hasta 25mil", schema(), current);
         Criteria conversationalBudget = engine.interpretTurn("Solo tengo 25mil", schema(), explicitBudget);
+        Criteria cappedBudget = engine.interpretTurn("Con un tope de 62 mil", schema(), current);
 
         assertThat(value(explicitBudget, "category")).isEqualTo("REMERAS");
         assertThat(value(explicitBudget, "color")).isEqualTo("BLACK");
@@ -247,6 +308,8 @@ class TypeSafeSearchDecisionEngineTest {
         assertThat(value(conversationalBudget, "category")).isEqualTo("REMERAS");
         assertThat(value(conversationalBudget, "color")).isEqualTo("BLACK");
         assertThat(filter(conversationalBudget, "price").value()).isEqualTo(new BigDecimal("25000"));
+        assertThat(filter(cappedBudget, "price").operator()).isEqualTo(FilterOperator.LESS_THAN_OR_EQUAL);
+        assertThat(filter(cappedBudget, "price").value()).isEqualTo(new BigDecimal("62000"));
         server.verify();
     }
 
@@ -277,6 +340,25 @@ class TypeSafeSearchDecisionEngineTest {
     }
 
     @Test
+    void treatsShortRestatementsOfTheCurrentExactSizeAsIdempotentRefinements() {
+        TypeSafeSearchDecisionEngine engine = new TypeSafeSearchDecisionEngine(
+                RestClient.builder().build(), properties(), () -> {
+                    throw new AssertionError("An exact restatement of the active size must not call TypeSafe.");
+                });
+        Criteria current = new Criteria(List.of(
+                new Filter("category", FilterOperator.EQUALS, "REMERAS"),
+                new Filter("color", FilterOperator.EQUALS, "BLACK"),
+                new Filter("size", FilterOperator.EQUALS, "M")), null, 10, 0);
+
+        for (String message : List.of("Mejor en talle M.", "Que sean talle M, porfa.", "¿Y talle M?")) {
+            Criteria repeated = engine.interpretTurn(message, schema(), current);
+
+            assertThat(repeated.filters()).containsExactlyElementsOf(current.filters());
+            assertThat(repeated.limit()).isEqualTo(current.limit());
+        }
+    }
+
+    @Test
     void sendsAmbiguousRelativePriceRefinementsToTypeSafeInsteadOfApplyingThemDirectly() {
         Criteria current = new Criteria(List.of(
                 new Filter("category", FilterOperator.EQUALS, "REMERAS"),
@@ -292,6 +374,31 @@ class TypeSafeSearchDecisionEngineTest {
     }
 
     @Test
+    void doesNotTreatTheAmountInAPriceCeilingAsANumericSize() {
+        SearchSchema numericSizeSchema = new SearchSchema("product-search", List.of(
+                field("category", SearchFieldType.ENUM, List.of("="), List.of("PANTALONES"), false),
+                field("color", SearchFieldType.ENUM, List.of("="), List.of("NEGRO"), false),
+                field("price", SearchFieldType.NUMBER, List.of("<="), List.of(), false),
+                field("size", SearchFieldType.ENUM, List.of("="), List.of("L", "40"), false)),
+                new SearchPaginationSchema(10, 50));
+        Criteria current = new Criteria(List.of(
+                new Filter("category", FilterOperator.EQUALS, "PANTALONES"),
+                new Filter("color", FilterOperator.EQUALS, "NEGRO"),
+                new Filter("size", FilterOperator.EQUALS, "L")), null, 10, 0);
+
+        for (String message : List.of("Hasta 40 mil.", "Con un tope de 40 mil.")) {
+            List<Filter> deterministic = ConversationalSearchCriteriaRefiner.deterministicFilters(
+                    message, numericSizeSchema, current);
+            Criteria refined = ConversationalSearchCriteriaRefiner.refine(
+                    message, numericSizeSchema, current, deterministic).orElseThrow().criteria();
+
+            assertThat(value(refined, "size")).isEqualTo("L");
+            assertThat(filter(refined, "price").operator()).isEqualTo(FilterOperator.LESS_THAN_OR_EQUAL);
+            assertThat(filter(refined, "price").value()).isEqualTo(new BigDecimal("40000"));
+        }
+    }
+
+    @Test
     void rejectsInvalidProviderChoicesAndMapsProviderHttpErrorsToUnavailable() {
         RestClient.Builder invalidBuilder = RestClient.builder();
         MockRestServiceServer invalidServer = MockRestServiceServer.bindTo(invalidBuilder).build();
@@ -300,9 +407,18 @@ class TypeSafeSearchDecisionEngineTest {
         invalidServer.expect(requestTo("https://api.typesafe.ai/v1/systemone"))
                 .andRespond(withSuccess(invalidProviderResponse(), MediaType.APPLICATION_JSON));
 
-        assertThatThrownBy(() -> invalidEngine.interpret(MESSAGE, schema()))
-                .isInstanceOf(SearchInterpretationFailedException.class)
-                .hasMessage("Search intent could not be interpreted safely.");
+        Criteria empty = new Criteria(List.of(), null, 10, 0);
+        assertThatThrownBy(() -> invalidEngine.interpretTurnWithTelemetry(
+                MESSAGE, schema(), empty, SearchConversationContext.empty()))
+                .isInstanceOfSatisfying(SearchInterpretationFailedException.class, exception -> {
+                    assertThat(exception)
+                            .hasMessage("Search intent could not be interpreted safely.");
+                    assertThat(exception.reason()).isEqualTo(SearchInterpretationFailedException.Reason.INVALID_PROVIDER_ANSWER);
+                    assertThat(exception.field()).isEqualTo("category");
+                    assertThat(exception.telemetry().method()).isEqualTo("rejected");
+                    assertThat(exception.telemetry().failureReason()).isEqualTo("INVALID_PROVIDER_ANSWER");
+                    assertThat(exception.telemetry().failureField()).isEqualTo("category");
+                });
         invalidServer.verify();
 
         RestClient.Builder unauthorizedBuilder = RestClient.builder();
@@ -382,7 +498,7 @@ class TypeSafeSearchDecisionEngineTest {
 
     private static String response() {
         return """
-                {"model":"jev-1.13.0","answers":{
+                {"model":"jev-1.13.0","usage":{"input_tokens":234,"output_tokens":18},"answers":{
                   "searchIntent":%s,
                   "category":%s,
                   "color":%s,
@@ -393,6 +509,36 @@ class TypeSafeSearchDecisionEngineTest {
                 answer("REMERAS", List.of("REMERAS", "BUZOS", "__NONE__")),
                 answer("BLACK", List.of("BLACK", "WHITE", "__NONE__")),
                 answer("M", List.of("M", "L", "__NONE__")));
+    }
+
+    private static String browseCatalogResponse() {
+        return """
+                {"answers":{
+                  "searchIntent":%s,
+                  "category":%s,
+                  "color":%s,
+                  "size":%s
+                }}
+                """.formatted(
+                answer("BROWSE_CATALOG", List.of("SEARCH_PRODUCTS", "BROWSE_CATALOG", "NOT_PRODUCT_SEARCH")),
+                answer("__NONE__", List.of("REMERAS", "BUZOS", "__NONE__")),
+                answer("__NONE__", List.of("BLACK", "WHITE", "__NONE__")),
+                answer("__NONE__", List.of("M", "L", "__NONE__")));
+    }
+
+    private static String noFilterSearchResponse() {
+        return """
+                {"answers":{
+                  "searchIntent":%s,
+                  "category":%s,
+                  "color":%s,
+                  "size":%s
+                }}
+                """.formatted(
+                answer("SEARCH_PRODUCTS", List.of("SEARCH_PRODUCTS", "BROWSE_CATALOG", "NOT_PRODUCT_SEARCH")),
+                answer("__NONE__", List.of("REMERAS", "BUZOS", "__NONE__")),
+                answer("__NONE__", List.of("BLACK", "WHITE", "__NONE__")),
+                answer("__NONE__", List.of("M", "L", "__NONE__")));
     }
 
     private static String productNameResponse() {

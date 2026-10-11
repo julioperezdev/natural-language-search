@@ -9,6 +9,18 @@ import java.util.List;
 public interface SearchDecisionEngine {
     Criteria interpret(String message, SearchSchema schema);
 
+    default SearchInterpretationResult interpretTurnWithTelemetry(
+            String message,
+            SearchSchema schema,
+            Criteria current,
+            SearchConversationContext context) {
+        long startedAt = System.nanoTime();
+        Criteria criteria = interpretTurn(message, schema, current, context);
+        return new SearchInterpretationResult(criteria, new SearchInterpretationTelemetry(
+                "decision_engine", "unknown", false, null, null,
+                (System.nanoTime() - startedAt) / 1_000_000));
+    }
+
     /**
      * Interprets one conversational turn and applies its filters to the current search state.
      * Provider adapters can override this method when they support explicit keep/clear decisions.
